@@ -1,0 +1,14 @@
+[package]
+name = "burrtype_derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "burrtype_derive"
+proc-macro = true
+
+[dependencies]
+burrtype = { path = ".." }
+syn = "2.0"
+quote = "1.0"
+proc-macro2 = "1.0"
