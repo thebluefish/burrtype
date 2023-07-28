@@ -1,6 +1,6 @@
 pub mod ir;
-
-pub use ir::*;
+pub mod syn;
+pub mod prelude;
 
 #[cfg(test)]
 mod tests {

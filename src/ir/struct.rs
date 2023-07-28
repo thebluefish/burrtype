@@ -6,40 +6,55 @@ use syn::{
 };
 
 pub trait NamedStructExt {
-    // fn get_ir() -> IrNamedStruct;
-    fn get_fields() -> Vec<IrNamedField> {
+    fn fields() -> Vec<IrNamedField> {
         Vec::new()
     }
 }
 
 pub trait UnnamedStructExt {
-    // fn get_ir() -> IrUnnamedStruct;
-    fn get_fields() -> Vec<TypePath> {
+    fn fields() -> Vec<TypePath> {
         Vec::new()
     }
 }
 
-pub trait StructUnionExt {
+pub trait UnionStructExt {
 }
 
+/// A field of an `IrNamedStruct`
+#[derive(Clone, Debug)]
 pub struct IrNamedField {
     pub name: Ident,
     pub ty: TypePath,
 }
 
+/// A struct with the format:
+/// ```
+/// struct T {
+///     name: type,
+///     ...
+/// }
+/// ```
+#[derive(Clone, Debug)]
 pub struct IrNamedStruct {
     pub name: Ident,
     pub fields: Vec<IrNamedField>,
 }
 
+/// A struct with the format:
+/// ```
+/// struct T (type, ...);
+/// ```
+#[derive(Clone, Debug)]
 pub struct IrUnnamedStruct {
     pub name: Ident,
     pub fields: Vec<TypePath>,
 }
 
-pub struct StructField {
-    /// substitute type's members
-    pub flatten: bool,
-    /// type
-    pub ty: TypePath,
+/// A struct with the format:
+/// ```
+/// struct T;
+/// ```
+#[derive(Clone, Debug)]
+pub struct IrUnitStruct {
+    pub name: Ident,
 }
