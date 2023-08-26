@@ -7,8 +7,11 @@ edition = "2021"
 thiserror = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 quote = "1.0"
-proc-macro2 = "1.0"
+proc-macro2 = { version = "1.0", features = ["span-locations"] }
 itertools = "0.11"
+Inflector = "0.11"
+path_macro = "1.0"
 
 [dev-dependencies]
 burrtype_derive = { path = "./burrtype_derive" }
+anyhow = "1.0"

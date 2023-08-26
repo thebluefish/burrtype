@@ -1,4 +1,4 @@
-use super::{IrMod, IrNamedStruct, IrUnnamedStruct, IrUnitStruct};
+use super::{IrMod, IrNamedStruct, IrTupleStruct, IrUnitStruct};
 use proc_macro2::TokenStream;
 use syn::Ident;
 use quote::ToTokens;
@@ -7,7 +7,7 @@ use quote::ToTokens;
 pub enum IrItem {
     Mod(IrMod),
     NamedStruct(IrNamedStruct),
-    UnnamedStruct(IrUnnamedStruct),
+    TupleStruct(IrTupleStruct),
     UnitStruct(IrUnitStruct),
 }
 
@@ -16,14 +16,9 @@ impl IrItem {
         match self {
             IrItem::Mod(inner) => &inner.name,
             IrItem::NamedStruct(inner) => &inner.name,
-            IrItem::UnnamedStruct(inner) => &inner.name,
+            IrItem::TupleStruct(inner) => &inner.name,
             IrItem::UnitStruct(inner) => &inner.name,
         }
-    }
-}
-
-impl ToTokens for IrItem {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
     }
 }
 
@@ -39,9 +34,9 @@ impl From<IrNamedStruct> for IrItem {
     }
 }
 
-impl From<IrUnnamedStruct> for IrItem {
-    fn from(value: IrUnnamedStruct) -> Self {
-        IrItem::UnnamedStruct(value)
+impl From<IrTupleStruct> for IrItem {
+    fn from(value: IrTupleStruct) -> Self {
+        IrItem::TupleStruct(value)
     }
 }
 

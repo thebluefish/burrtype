@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use proc_macro2::{Ident, Literal, TokenStream};
 use std::collections::HashMap;
 use syn::{
@@ -11,8 +12,14 @@ pub trait NamedStructExt {
     }
 }
 
-pub trait UnnamedStructExt {
-    fn fields() -> Vec<TypePath> {
+#[derive(Clone, Debug)]
+pub struct IrType {
+    pub path: TypePath,
+    pub id: TypeId,
+}
+
+pub trait TupleStructExt {
+    fn fields() -> Vec<IrType> {
         Vec::new()
     }
 }
@@ -24,7 +31,7 @@ pub trait UnionStructExt {
 #[derive(Clone, Debug)]
 pub struct IrNamedField {
     pub name: Ident,
-    pub ty: TypePath,
+    pub ty: IrType,
 }
 
 /// A struct with the format:
@@ -45,9 +52,9 @@ pub struct IrNamedStruct {
 /// struct T (type, ...);
 /// ```
 #[derive(Clone, Debug)]
-pub struct IrUnnamedStruct {
+pub struct IrTupleStruct {
     pub name: Ident,
-    pub fields: Vec<TypePath>,
+    pub fields: Vec<IrType>,
 }
 
 /// A struct with the format:
@@ -57,4 +64,5 @@ pub struct IrUnnamedStruct {
 #[derive(Clone, Debug)]
 pub struct IrUnitStruct {
     pub name: Ident,
+    // pub type_id: TypeId,
 }

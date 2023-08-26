@@ -1,16 +1,15 @@
-mod r#enum;
-mod item;
-mod r#struct;
-
-pub use r#enum::*;
-pub use item::*;
-pub use r#struct::*;
-
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use syn::{Attribute, Data, Item, ItemMod, spanned::Spanned};
+use super::IrItem;
 
 pub trait IrExt {
     fn get_ir() -> IrItem;
+}
+
+impl<IR: IrExt> From<IR> for IrItem {
+    fn from(value: IR) -> Self {
+        IR::get_ir()
+    }
 }
 
 pub trait ModExt {

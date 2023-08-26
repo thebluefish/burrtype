@@ -5,6 +5,7 @@ use quote::{quote, quote_spanned, ToTokens};
 use std::collections::HashMap;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Lit, LitByteStr, LitStr, Meta, MetaNameValue, Token, TypePath, punctuated::Punctuated, spanned::Spanned, Item, ItemMod, Expr, ExprLit, ItemStruct, Type};
 use inflector::*;
+use syn::token::Typeof;
 
 #[derive(Clone, Debug)]
 pub enum BurrModItem {
@@ -106,60 +107,63 @@ impl From<&ItemMod> for BurrModIr {
 //
 
 /// Attempts to parse an item from syn IR to our IR
-pub fn parse_item(item: Item) -> Result<IrItem, TokenStream>  {
-    match item {
-        Item::Mod(inner) => {
-            parse_mod(inner).map(|ir| IrItem::from(ir))
-        }
-        Item::Struct(inner) => {
-            let item = match &inner.fields {
-                Fields::Named(fields) => {
-                    let mut ir_fields = Vec::with_capacity(fields.named.len());
-                    for field in &fields.named {
-                        if let Type::Path(ty) = &field.ty {
-                            ir_fields.push(IrNamedField {
-                                name: field.ident.clone().unwrap(),
-                                ty: ty.clone(),
-                            });
-                        }
-                        else {
-                            return Err(syn::Error::new(inner.span(), "invalid item type").to_compile_error())
-                        }
-                    }
-
-                    IrNamedStruct {
-                        name: inner.ident.clone(),
-                        fields: ir_fields,
-                    }.into()
-                }
-                Fields::Unnamed(fields) => {
-                    let mut ir_fields = Vec::with_capacity(fields.unnamed.len());
-                    for field in &fields.unnamed {
-                        if let Type::Path(ty) = &field.ty {
-                            ir_fields.push(ty.clone());
-                        }
-                        else {
-                            return Err(syn::Error::new(inner.span(), "invalid item type").to_compile_error())
-                        }
-                    }
-                    IrUnnamedStruct {
-                        name: inner.ident.clone(),
-                        fields: ir_fields,
-                    }.into()
-                }
-                Fields::Unit => {
-                    IrUnitStruct {
-                        name: inner.ident.clone(),
-                    }.into()
-                }
-            };
-            Ok(item)
-        }
-        // Item::Enum(inner) => {
-        // }
-        item => return Err(syn::Error::new(item.span(), "invalid item").to_compile_error())
-    }
-}
+// pub fn parse_item(item: Item) -> Result<IrItem, TokenStream>  {
+//     match item {
+//         Item::Mod(inner) => {
+//             parse_mod(inner).map(|ir| IrItem::from(ir))
+//         }
+//         Item::Struct(inner) => {
+//             let item = match &inner.fields {
+//                 Fields::Named(fields) => {
+//                     let mut ir_fields = Vec::with_capacity(fields.named.len());
+//                     for field in &fields.named {
+//                         if let Type::Path(ty) = &field.ty {
+//                             ir_fields.push(IrNamedField {
+//                                 name: field.ident.clone().unwrap(),
+//                                 ty: IrType {
+//                                     id: std::any::TypeId::of::<syn::parse_quote!(ty)>(),
+//                                     path: ty.clone(),
+//                                 },
+//                             });
+//                         }
+//                         else {
+//                             return Err(syn::Error::new(inner.span(), "invalid item type").to_compile_error())
+//                         }
+//                     }
+//
+//                     IrNamedStruct {
+//                         name: inner.ident.clone(),
+//                         fields: ir_fields,
+//                     }.into()
+//                 }
+//                 Fields::Unnamed(fields) => {
+//                     let mut ir_fields = Vec::with_capacity(fields.unnamed.len());
+//                     for field in &fields.unnamed {
+//                         if let Type::Path(ty) = &field.ty {
+//                             ir_fields.push(ty.clone());
+//                         }
+//                         else {
+//                             return Err(syn::Error::new(inner.span(), "invalid item type").to_compile_error())
+//                         }
+//                     }
+//                     IrUnnamedStruct {
+//                         name: inner.ident.clone(),
+//                         fields: ir_fields,
+//                     }.into()
+//                 }
+//                 Fields::Unit => {
+//                     IrUnitStruct {
+//                         name: inner.ident.clone(),
+//                     }.into()
+//                 }
+//             };
+//             Ok(item)
+//         }
+//         // Item::Enum(inner) => {
+//         // }
+//         item => return Err(syn::Error::new(item.span(), "invalid item").to_compile_error())
+//     }
+// }
 
 pub fn parse_mod(item: ItemMod) -> Result<IrMod, TokenStream> {
     let mut is_burrmod = false;
@@ -232,10 +236,9 @@ pub fn parse_mod(item: ItemMod) -> Result<IrMod, TokenStream> {
         name
     }
     else {
-        Ident::new(&format!("{}ModIr", name.to_string().to_pascal_case()), Span::call_site())
+        Ident::new(&format!("{}Mod", name.to_string().to_pascal_case()), Span::call_site())
     };
 
-    println!("irname: {}", ir_name);
     Ok(IrMod {
         name: name.clone(),
         ir_name,
