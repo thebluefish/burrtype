@@ -63,6 +63,7 @@ pub struct IrNamedField {
 #[derive(Clone, Debug)]
 pub struct IrNamedStruct {
     pub name: Ident,
+    pub id: TypeId,
     pub fields: Vec<IrNamedField>,
 }
 
@@ -73,6 +74,7 @@ pub struct IrNamedStruct {
 #[derive(Clone, Debug)]
 pub struct IrTupleStruct {
     pub name: Ident,
+    pub id: TypeId,
     pub fields: Vec<IrType>,
 }
 
@@ -83,5 +85,5 @@ pub struct IrTupleStruct {
 #[derive(Clone, Debug)]
 pub struct IrUnitStruct {
     pub name: Ident,
-    // pub type_id: TypeId,
+    pub id: TypeId,
 }

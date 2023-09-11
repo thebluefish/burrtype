@@ -70,7 +70,7 @@ impl Burrxporter {
 
     /// Gets the writer for a file path
     /// Creates the directory and file if it does not exist, truncates if it does
-    // todo: consider options for allowing user to plugin their writer, something like a Box<dyn Writer>
+    // todo: options for allowing user to plugin their writer, something like a Box<dyn Writer> or an enum Burrwriter<'t> { Owned, Shared<'t> }
     pub fn open_writer(&self, to: &Path) -> Result<impl Write, ExportError> {
         let path = self.root.as_ref().map_or_else(|| to.to_path_buf(), |root| path!(root / to));
 

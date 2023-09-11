@@ -1,4 +1,4 @@
 pub use crate::{
     ir::*,
-    syn::*
+    syn::*,
 };

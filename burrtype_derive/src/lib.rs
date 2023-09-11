@@ -92,6 +92,7 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                             fn get_ir() -> burrtype::ir::IrItem {
                                 burrtype::ir::IrNamedStruct {
                                     name: syn::parse_quote!(#name),
+                                    id: std::any::TypeId::of::<#name>(),
                                     fields: vec![#(#fs)*],
                                 }.into()
                             }
@@ -121,6 +122,7 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                             fn get_ir() -> burrtype::ir::IrItem {
                                 burrtype::ir::IrTupleStruct {
                                     name: syn::parse_quote!(#name),
+                                    id: std::any::TypeId::of::<#name>(),
                                     fields: vec![#(#fs)*],
                                 }.into()
                             }
@@ -134,6 +136,7 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                             fn get_ir() -> burrtype::ir::IrItem {
                                 burrtype::ir::IrUnitStruct {
                                     name: syn::parse_quote!(#name)
+                                    id: std::any::TypeId::of::<#name>(),
                                 }.into()
                             }
                         }

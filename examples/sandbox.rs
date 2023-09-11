@@ -1,7 +1,7 @@
 use burrtype::prelude::*;
 use burrtype_derive::*;
 use quote::ToTokens;
-use burrtype::export::{Burrmatter, BurrMod, Burrxporter};
+use burrtype::export::{BurrModExt, BurrMod, Burrxporter};
 use burrtype::targets::typescript::{TsFormatter, ModFileMap, TypeScript};
 use path_macro::path;
 use std::env;
@@ -111,8 +111,9 @@ fn main() -> anyhow::Result<()> {
     Burrxporter::new()
         // Build inputs
         // The options associated with inputs should correspond to common idioms found in most languages
-        .with_mod(BurrMod::new("foos")
-            .with_item(FooMod)
+        .with_mod(FooMod::to_mod()
+            .with_name("foos")
+            .with_type::<Foo>()
         )
         // .with_mod(BarMod)
         // Builds and writes outputs
