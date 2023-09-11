@@ -174,7 +174,8 @@ pub fn parse_mod(item: ItemMod) -> Result<IrMod, TokenStream> {
     let mut name_override: Option<Ident> = None;
 
     for attr in &item.attrs {
-        if attr.has_ident("burrmod") {
+        println!("checking {}: {}\n{}", item.ident, attr.is_ident("burrmod"), attr.get_ident().unwrap());
+        if attr.is_ident("burrmod") {
             is_burrmod = true;
 
             match attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {
@@ -222,6 +223,7 @@ pub fn parse_mod(item: ItemMod) -> Result<IrMod, TokenStream> {
     }
 
     if !is_burrmod {
+        println!("denying {}", item.ident);
         return Err(syn::Error::new(item.span(), "not tagged with #[burrmod]").to_compile_error())
     }
 
@@ -256,7 +258,7 @@ pub fn process_burr_item(item: Item, ir: &mut BurrModIr) -> Result<(), TokenStre
             let mut ignore = false;
 
             for attr in &inner.attrs {
-                if attr.has_ident("burrmod") {
+                if attr.is_ident("burrmod") {
                     is_burrmod = true;
 
                     match attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {

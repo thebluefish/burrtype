@@ -5,8 +5,6 @@ mod item;
 mod output;
 mod target;
 
-use std::borrow::Cow;
-use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Error as IoError, Write};
@@ -37,7 +35,7 @@ pub enum ExportError {
 /// Supports exporting to different languages
 pub struct Burrxporter {
     pub mods: Vec<BurrMod>,
-    pub root: Option<PathBuf>
+    pub root: Option<PathBuf>,
 }
 
 impl Burrxporter {

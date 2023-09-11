@@ -68,11 +68,31 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         }
                     };
 
+                    let fs = fields.named.iter().map(|f| {
+                        let ty = &f.ty;
+                        let name = f.ident.as_ref().unwrap();
+                        if let Type::Path(path) = ty {
+                            quote! {
+                                burrtype::ir::IrNamedField {
+                                    name: syn::parse_quote!(#name),
+                                    ty: burrtype::ir::IrType {
+                                        path: syn::parse_quote!(#path),
+                                        id: std::any::TypeId::of::<#ty>(),
+                                    },
+                                },
+                            }
+                        }
+                        else {
+                            quote! { }
+                        }
+                    }).collect::<Vec<_>>();
+
                     let irext_impl: Item = parse_quote!(
                         impl burrtype::ir::IrExt for #name {
                             fn get_ir() -> burrtype::ir::IrItem {
-                                burrtype::ir::IrUnitStruct {
+                                burrtype::ir::IrNamedStruct {
                                     name: syn::parse_quote!(#name),
+                                    fields: vec![#(#fs)*],
                                 }.into()
                             }
                         }
@@ -162,15 +182,15 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
 
     // process content into ir representation
     let (_, items) = ir_item.content.expect("unsupported opaque module");
-    for item in &items {
-        let name = item.get_ident().unwrap().clone();
-        // if let Ok(item) = parse_item(item) {
-        //     ir.items.push(item);
-        // }
-        // else {
-        //     println!("skipping {name}");
-        // }
-    }
+    // for item in &items {
+    //     let name = item.get_ident().unwrap().clone();
+    //     // if let Ok(item) = parse_item(item) {
+    //     //     ir.items.push(item);
+    //     // }
+    //     // else {
+    //     //     println!("skipping {name}");
+    //     // }
+    // }
 
     let IrMod { name, ir_name, flatten, inline, ..} = ir;
 
@@ -184,6 +204,7 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
                 quote! {}
             }
             Item::Mod(inner) => {
+                println!("!>==\n{}\n==<!", inner.to_token_stream());
                 match parse_mod(inner.clone()) {
                     Ok(inner) => {
                         let IrMod { name: mod_name, ir_name, flatten, inline: mod_inline, items } = inner;

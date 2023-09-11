@@ -1,10 +1,10 @@
-use std::env;
 use burrtype::prelude::*;
 use burrtype_derive::*;
 use quote::ToTokens;
-use burrtype::export::{Burrmatter, BurrMod, Burrxporter, Formatter};
-use burrtype::targets::typescript::{ModFileMap, TypeScript};
+use burrtype::export::{Burrmatter, BurrMod, Burrxporter};
+use burrtype::targets::typescript::{TsFormatter, ModFileMap, TypeScript};
 use path_macro::path;
+use std::env;
 
 /// We should be able to declare a `Burr` derive on types that implements appropriate traits on these types
 #[derive(Burr)]
@@ -84,42 +84,47 @@ pub mod foo {
 ///```
 fn main() -> anyhow::Result<()> {
     let cwd = if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") { dir.into() } else { env::current_dir().unwrap() };
-
-    let name = <FooMod as ModExt>::name();
-    let items = <FooMod as ModExt>::items();
-    println!("mod {name} {{");
-    for item in items {
-        println!("  {},", item.name());
-    }
-    println!("}}");
-
-    let name = <foo::bar::WiddlyMod as ModExt>::name();
-    let items = <foo::bar::WiddlyMod as ModExt>::items();
-    println!("mod {name} {{");
-    for item in items {
-        println!("  {},", item.name());
-    }
-    println!("}}");
-
-    let fields = <Bar as NamedStructExt>::fields();
-    for IrNamedField { name, ty} in &fields {
-        println!("{name}: {:?},", ty);
-    }
+    //
+    // let name = <FooMod as ModExt>::name();
+    // let items = <FooMod as ModExt>::items();
+    // println!("FooMod mod {name} {{");
+    // for item in items {
+    //     println!("  {},", item.name());
+    // }
+    // println!("}}");
+    //
+    // let name = <foo::bar::WiddlyMod as ModExt>::name();
+    // let items = <foo::bar::WiddlyMod as ModExt>::items();
+    // println!("WiddlyMod mod {name} {{");
+    // for item in items {
+    //     println!("  {},", item.name());
+    // }
+    // println!("}}");
+    //
+    // let fields = <Bar as NamedStructExt>::fields();
+    // for IrNamedField { name, ty} in &fields {
+    //     println!("{name}: {:?},", ty);
+    // }
 
     println!("--- export ---\n");
 
     Burrxporter::new()
         // Build inputs
         // The options associated with inputs should correspond to common idioms found in most languages
-        .with_mod(BurrMod::new("kek")
+        .with_mod(BurrMod::new("foos")
             .with_item(FooMod)
         )
+        // .with_mod(BarMod)
         // Builds and writes outputs
         // The options associated with outputs should correspond to features specific to a language
         .root(&path!(cwd / "target" / "api"))?
+        // exports each root-level mod to root/ts/{target}[.ts]
         .export(&path!("ts"), TypeScript::new())?
-        .export(&path!("bundled.ts"), TypeScript::new().with_map(ModFileMap::Inline))?
-        // .export_target(&path!(cwd / "target" / "rs" / "core.rs"), Rust::new())?
+        // exports all modules together to root/{target}[.ts]
+        .export(&path!("bundled.ts"), TypeScript::new()
+            .with_map(ModFileMap::Inline)
+            .with_formatter(TsFormatter::minify())
+        )?
     ;
 
     println!("\n--- done! ---");

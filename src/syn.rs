@@ -1,28 +1,46 @@
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use syn::{Attribute, Path, Item, ItemMod, spanned::Spanned};
 
-pub trait SynHasIdent {
-    fn has_ident<I: ?Sized>(&self, ident: &I) -> bool where Ident: PartialEq<I>;
+pub trait SynIdent {
+    /// Checks whether the item matches the ident regardless of path
+    fn is_ident<I: ?Sized>(&self, ident: &I) -> bool where Ident: PartialEq<I>;
+    /// Gets the ident portion of this item
+    fn get_ident(&self) -> Option<&Ident>;
 }
 
-impl SynHasIdent for Path {
-    fn has_ident<I: ?Sized>(&self, ident: &I) -> bool
+impl SynIdent for Path {
+    fn is_ident<I: ?Sized>(&self, ident: &I) -> bool
         where Ident: PartialEq<I>
     {
         if let Some(segment) = self.segments.last() {
-            if &segment.ident == ident {
-                return true
-            }
+            return &segment.ident == ident
         }
         false
     }
+
+    fn get_ident(&self) -> Option<&Ident> {
+        if let Some(segment) = self.segments.last() {
+            return Some(&segment.ident)
+        }
+        None
+    }
 }
 
-impl SynHasIdent for Attribute {
-    fn has_ident<I: ?Sized>(&self, ident: &I) -> bool
+impl SynIdent for Attribute {
+    fn is_ident<I: ?Sized>(&self, ident: &I) -> bool
         where Ident: PartialEq<I>
     {
-        self.path().has_ident(ident)
+        if let Some(segment) = self.path().segments.last() {
+            return &segment.ident == ident
+        }
+        false
+    }
+
+    fn get_ident(&self) ->  Option<&Ident> {
+        if let Some(segment) = self.path().segments.last() {
+            return Some(&segment.ident)
+        }
+        None
     }
 }
 
@@ -78,7 +96,7 @@ impl SynItemExt for Item {
     {
         if let Some(attrs) = self.clone().get_attrs() {
             for attr in attrs {
-                if attr.has_ident(ident) {
+                if attr.is_ident(ident) {
                     return true
                 }
             }
@@ -93,7 +111,7 @@ impl SynItemExt for Item {
     {
         if let Some(attrs) = self.get_attrs() {
             for attr in attrs {
-                if attr.has_ident(ident) {
+                if attr.is_ident(ident) {
                     return Some(attr)
                 }
             }

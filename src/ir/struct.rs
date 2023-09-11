@@ -5,6 +5,7 @@ use syn::{
     parse_macro_input, Data, DeriveInput, Field, Fields, Lit, LitByteStr, LitStr, Meta, Token,
     TypePath,
 };
+use crate::syn::SynIdent;
 
 pub trait NamedStructExt {
     fn fields() -> Vec<IrNamedField> {
@@ -16,6 +17,24 @@ pub trait NamedStructExt {
 pub struct IrType {
     pub path: TypePath,
     pub id: TypeId,
+}
+
+impl SynIdent for IrType {
+    fn is_ident<I: ?Sized>(&self, ident: &I) -> bool
+        where Ident: PartialEq<I>
+    {
+        if let Some(segment) = self.path.path.segments.last() {
+            return &segment.ident == ident
+        }
+        false
+    }
+
+    fn get_ident(&self) ->  Option<&Ident> {
+        if let Some(segment) = self.path.path.segments.last() {
+            return Some(&segment.ident)
+        }
+        None
+    }
 }
 
 pub trait TupleStructExt {

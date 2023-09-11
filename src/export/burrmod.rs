@@ -7,8 +7,8 @@ use super::item::Item;
 /// Optionally configured for direct export
 #[derive(Clone, Debug)]
 pub struct BurrMod {
-    pub(crate) name: String,
-    pub(crate) items: Vec<Item>,
+    pub name: String,
+    pub items: Vec<Item>,
 }
 
 impl BurrMod {

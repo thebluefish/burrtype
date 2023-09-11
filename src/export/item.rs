@@ -15,10 +15,9 @@ impl From<IrItem> for Item {
     fn from(value: IrItem) -> Self {
         match value {
             IrItem::Mod(inner) => {
-                let mut items = vec![];
                 Item::Mod(BurrMod {
                     name: inner.name.to_string(),
-                    items,
+                    items: inner.items.iter().map(Clone::clone).map(Into::into).collect(),
                 })
             }
             IrItem::NamedStruct(inner) => Item::NamedStruct(inner),

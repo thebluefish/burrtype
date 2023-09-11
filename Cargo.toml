@@ -3,6 +3,12 @@ name = "burrtype"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    ".",
+    "burrtype_derive"
+]
+
 [dependencies]
 thiserror = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
