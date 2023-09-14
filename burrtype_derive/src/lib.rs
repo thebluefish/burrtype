@@ -175,7 +175,7 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
     ).into();
 
     let mut item = parse_macro_input!(input as ItemMod);
-    println!("item {} at {:?} : {:?}", item.ident, item.span().source_file().path(), item.span().start());
+    // println!("item {} at {:?} : {:?}", item.ident, item.span().source_file().path(), item.span().start());
     let ir_item = parse_macro_input!(item_with_attr as ItemMod);
 
     let mut ir = match parse_mod(ir_item.clone()) {
