@@ -1,7 +1,5 @@
-use super::{IrMod, IrNamedStruct, IrTupleStruct, IrUnitStruct};
-use proc_macro2::TokenStream;
+use super::{IrNamedStruct, IrTupleStruct, IrUnitStruct};
 use syn::Ident;
-use quote::ToTokens;
 
 #[derive(Clone, Debug)]
 pub enum IrItem {

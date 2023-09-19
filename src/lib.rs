@@ -1,7 +1,4 @@
 pub mod export;
-#[path = "ir.rs"]
-pub mod ir;
-pub mod syn;
 pub mod targets;
 pub mod prelude;
 

@@ -1,5 +1,9 @@
 mod file;
 
+pub use file::*;
+
+use crate::export::{Burrmatter, BurrMod, Burrxporter, Item, Target};
+use burrtype_internal::prelude::*;
 use std::any::TypeId;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -7,13 +11,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use path_macro::path;
 use path_slash::*;
-use crate::export::{Burrmatter, BurrMod, Burrxporter, Item, Target};
-use crate::ir::{IrNamedStruct, IrTupleStruct, IrType, IrUnitStruct};
-use crate::syn::SynIdent;
 use inflector::Inflector;
 use proc_macro2::Ident;
 use quote::ToTokens;
-use crate::targets::typescript::file::TsFile;
 
 /// Determines how we want to map modules to files
 // todo: consider moving this and related logic to some sort of common writer
@@ -48,7 +48,6 @@ pub struct TypeScript<'t> {
     pub index_generator: IndexGeneratorType,
     /// replaces Rust types with TS types during export
     pub type_map: HashMap<TypeId, &'t str>,
-    // pub file_case: FileCase, // move this type to a "targets/common" or such utility mod
 }
 
 impl<'t> Default for TypeScript<'t> {

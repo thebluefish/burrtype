@@ -1,11 +1,7 @@
-use std::any::TypeId;
-use std::collections::HashMap;
+use burrtype_internal::ir::IrExt;
+use super::item::Item;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::*;
-use crate::ir::{IrExt, IrItem, ModExt};
-use crate::prelude::IrMod;
-use inflector::Inflector;
-use super::item::Item;
 
 /// A collection of items to export
 /// Optionally configured for direct export

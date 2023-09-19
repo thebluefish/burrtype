@@ -1,8 +1,4 @@
 use burrtype::prelude::*;
-use burrtype_derive::*;
-use quote::ToTokens;
-use burrtype::export::{BurrMod, Burrxporter};
-use burrtype::targets::typescript::{TsFormatter, ModFileMap, TypeScript};
 use path_macro::path;
 use std::env;
 

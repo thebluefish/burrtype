@@ -1,11 +1,7 @@
-use std::any::TypeId;
-use proc_macro2::{Ident, Literal, TokenStream};
-use std::collections::HashMap;
-use syn::{
-    parse_macro_input, Data, DeriveInput, Field, Fields, Lit, LitByteStr, LitStr, Meta, Token,
-    TypePath,
-};
 use crate::syn::SynIdent;
+use std::any::TypeId;
+use proc_macro2::Ident;
+use syn::TypePath;
 
 pub trait NamedStructExt {
     fn fields() -> Vec<IrNamedField> {

@@ -1,6 +1,6 @@
+use burrtype_internal::prelude::*;
 use std::any::TypeId;
 use proc_macro2::Ident;
-use crate::ir::{IrExt, IrItem, IrNamedStruct, IrUnitStruct, IrTupleStruct};
 
 #[derive(Clone, Debug)]
 pub enum Item {
@@ -35,11 +35,5 @@ impl From<IrItem> for Item {
             IrItem::TupleStruct(inner) => Item::TupleStruct(inner),
             IrItem::UnitStruct(inner) => Item::UnitStruct(inner),
         }
-    }
-}
-
-impl<T> From<T> for Item where T: IrExt {
-    fn from(_: T) -> Self {
-        T::get_ir().into()
     }
 }

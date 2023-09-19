@@ -1,2 +1,2 @@
-pub mod rust;
+#[cfg(feature = "typescript")]
 pub mod typescript;

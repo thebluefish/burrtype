@@ -1,5 +1,5 @@
 use super::Item;
-use crate::ir::{IrNamedStruct, IrTupleStruct, IrUnitStruct};
+use burrtype_internal::prelude::*;
 
 /// Formats items
 pub trait Burrmatter {

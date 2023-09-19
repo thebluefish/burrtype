@@ -1,7 +1,5 @@
-use std::any::TypeId;
-use std::collections::HashMap;
-use std::path::PathBuf;
 use crate::export::{BurrMod, Item};
+use std::path::PathBuf;
 
 #[derive(Default, Debug)]
 pub struct TsFile {

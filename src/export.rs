@@ -1,19 +1,18 @@
 mod burrmod;
 mod format;
 mod item;
-mod output;
 mod target;
+
+pub use burrmod::*;
+pub use format::*;
+pub use item::*;
+pub use target::*;
 
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Error as IoError, Write};
 use std::path::{Path, PathBuf};
 use path_macro::path;
-pub use burrmod::*;
-pub use format::*;
-pub use item::*;
-pub use output::*;
-pub use target::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ExportError {
