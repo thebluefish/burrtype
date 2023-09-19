@@ -215,31 +215,33 @@ impl<'f> Target for TypeScript<'f> {
         match self.mod_file_map {
             ModFileMap::Inline => {
                 // Collect items from all top-level modules into a single top-level file
-                let mut file: TsFile = exporter.mods.iter().map(Clone::clone).reduce(|mut acc,bm| {
-                    acc.items.extend(bm.items);
-                    acc
-                }).unwrap().into();
-                file.target = to.with_extension("ts");
+                let mut file = TsFile {
+                    name: to.to_slash_lossy().to_string(),
+                    target: to.with_extension("ts"),
+                    ..Default::default()
+                };
+                flatten_all(&mut file, exporter.mods.clone());
 
                 files.push(file);
             }
             ModFileMap::DecomposeTop => {
                 // Convert modules into files
-                files.extend(exporter.mods.iter()
-                    .map(Clone::clone)
+                files.extend(exporter.mods.clone().into_iter()
                     .map(Into::<TsFile>::into)
                     .map(|mut f| { f.target = path!(to / f.target); f })
                 );
             }
             ModFileMap::DecomposeAll => {
-                for mut file in exporter.mods.iter()
-                    .map(Clone::clone)
+                for mut file in exporter.mods.clone().into_iter()
                     .map(Into::<TsFile>::into) {
                     let children = decompose_all(&mut file);
                     files.push(file);
                     files.extend(children);
                 }
             }
+        }
+        for file in &files {
+            println!("made {} items", file.items.len());
         }
 
         // build a map of all types being exported
@@ -377,6 +379,7 @@ impl<'f> Target for TypeScript<'f> {
             }
 
             // write exports
+            println!("exporting {} items", file.items.len());
             for (i, item) in file.items.iter().enumerate() {
                 if i > 0 {
                     out.push_str("\n");
@@ -416,6 +419,14 @@ impl<'f> Target for TypeScript<'f> {
         //     let mut writer = exporter.open_writer(&file.target).unwrap();
         //     writer.write(self.format_file(&file).as_bytes()).unwrap();
         // }
+    }
+}
+
+fn flatten_all(target: &mut TsFile, mods: Vec<BurrMod>) {
+    println!("flattening {} children into {}", mods.len(), target.name);
+    for child in mods {
+        target.items.extend(child.items);
+        flatten_all(target, child.children);
     }
 }
 

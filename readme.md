@@ -39,6 +39,7 @@ Inputs are organized into modules, which represent collections of items. Modules
 ## Desired features going forward
 
 - Replace panics with errors
+- tests
 
 ### Typescript
 
