@@ -1,15 +1,12 @@
 mod burrtribute;
 
 use burrtribute::*;
-use burrtype::prelude::*;
+use burrtype_internal::prelude::*;
 use proc_macro::{TokenStream as ProcTokenStream};
-use proc_macro2::{Span, Ident, Literal, TokenStream};
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
-use std::collections::HashMap;
-use std::process::id;
-use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Lit, LitByteStr, LitStr, Meta, MetaNameValue, Token, TypePath, Item, ItemMod, punctuated::Punctuated, spanned::Spanned, parse::{Parse, ParseStream}, Attribute, Expr, ExprLit, parse_quote, Type};
+use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Meta, Token, TypePath, Item, ItemMod, punctuated::Punctuated, spanned::Spanned, parse::Parse, parse_quote, Type};
 use syn::parse::Parser;
-use syn::token::Const;
 use inflector::*;
 
 /// Implements #[derive(Burr)]
@@ -33,12 +30,12 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                                     let st = if ir.ignore {
                                         quote! { }
                                     } else if ir.flatten {
-                                        quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
+                                        quote! {fields.extend(<#ty as burrtype_internal::ir::NamedStructExt>::fields());}
                                     } else {
                                         // quote!()
-                                        quote! {fields.push(burrtype::ir::IrNamedField {
+                                        quote! {fields.push(burrtype_internal::ir::IrNamedField {
                                             name: syn::parse_quote!(#name),
-                                            ty: burrtype::ir::IrType {
+                                            ty: burrtype_internal::ir::IrType {
                                                 id: std::any::TypeId::of::<#ty>(),
                                                 path: syn::parse_quote!(#ty),
                                             },
@@ -55,14 +52,14 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         // })
                         .collect::<Vec<_>>();
                     let field_map_frag = quote! {
-                        let mut fields = Vec::<burrtype::ir::IrNamedField>::new();
+                        let mut fields = Vec::<burrtype_internal::ir::IrNamedField>::new();
                         #( #a )*
                         fields
                     };
 
                     let impl_frag = quote! {
-                        impl burrtype::ir::NamedStructExt for #name {
-                            fn fields() -> Vec<burrtype::ir::IrNamedField> {
+                        impl burrtype_internal::ir::NamedStructExt for #name {
+                            fn fields() -> Vec<burrtype_internal::ir::IrNamedField> {
                                 #field_map_frag
                             }
                         }
@@ -73,9 +70,9 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         let name = f.ident.as_ref().unwrap();
                         if let Type::Path(path) = ty {
                             quote! {
-                                burrtype::ir::IrNamedField {
+                                burrtype_internal::ir::IrNamedField {
                                     name: syn::parse_quote!(#name),
-                                    ty: burrtype::ir::IrType {
+                                    ty: burrtype_internal::ir::IrType {
                                         path: syn::parse_quote!(#path),
                                         id: std::any::TypeId::of::<#ty>(),
                                     },
@@ -88,9 +85,9 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                     }).collect::<Vec<_>>();
 
                     let irext_impl: Item = parse_quote!(
-                        impl burrtype::ir::IrExt for #name {
-                            fn get_ir() -> burrtype::ir::IrItem {
-                                burrtype::ir::IrNamedStruct {
+                        impl burrtype_internal::ir::IrExt for #name {
+                            fn get_ir() -> burrtype_internal::ir::IrItem {
+                                burrtype_internal::ir::IrNamedStruct {
                                     name: syn::parse_quote!(#name),
                                     id: std::any::TypeId::of::<#name>(),
                                     fields: vec![#(#fs)*],
@@ -107,7 +104,7 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         let ty = &f.ty;
                         if let Type::Path(path) = &f.ty {
                             quote! {
-                                burrtype::ir::IrType {
+                                burrtype_internal::ir::IrType {
                                     path: syn::parse_quote!(#path),
                                     id: std::any::TypeId::of::<#ty>(),
                                 },
@@ -118,9 +115,9 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         }
                     }).collect::<Vec<_>>();
                     return quote! {
-                        impl burrtype::ir::IrExt for #name {
-                            fn get_ir() -> burrtype::ir::IrItem {
-                                burrtype::ir::IrTupleStruct {
+                        impl burrtype_internal::ir::IrExt for #name {
+                            fn get_ir() -> burrtype_internal::ir::IrItem {
+                                burrtype_internal::ir::IrTupleStruct {
                                     name: syn::parse_quote!(#name),
                                     id: std::any::TypeId::of::<#name>(),
                                     fields: vec![#(#fs)*],
@@ -132,10 +129,10 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                 Fields::Unit => {
                     println!("struct {name:?};");
                     return quote! {
-                        impl burrtype::ir::IrExt for #name {
-                            fn get_ir() -> burrtype::ir::IrItem {
-                                burrtype::ir::IrUnitStruct {
-                                    name: syn::parse_quote!(#name)
+                        impl burrtype_internal::ir::IrExt for #name {
+                            fn get_ir() -> burrtype_internal::ir::IrItem {
+                                burrtype_internal::ir::IrUnitStruct {
+                                    name: syn::parse_quote!(#name),
                                     id: std::any::TypeId::of::<#name>(),
                                 }.into()
                             }
@@ -175,7 +172,6 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
     ).into();
 
     let mut item = parse_macro_input!(input as ItemMod);
-    // println!("item {} at {:?} : {:?}", item.ident, item.span().source_file().path(), item.span().start());
     let ir_item = parse_macro_input!(item_with_attr as ItemMod);
 
     let mut ir = match parse_mod(ir_item.clone()) {
@@ -185,15 +181,6 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
 
     // process content into ir representation
     let (_, items) = ir_item.content.expect("unsupported opaque module");
-    // for item in &items {
-    //     let name = item.get_ident().unwrap().clone();
-    //     // if let Ok(item) = parse_item(item) {
-    //     //     ir.items.push(item);
-    //     // }
-    //     // else {
-    //     //     println!("skipping {name}");
-    //     // }
-    // }
 
     let IrMod { name, ir_name, flatten, inline, ..} = ir;
 
@@ -223,10 +210,10 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
                         println!("path {ir_path}");
 
                         if flatten {
-                            quote! { items.extend(<#ir_path as burrtype::ir::ModExt>::items()); }
+                            quote! { items.extend(<#ir_path as burrtype_internal::ir::ModExt>::items()); }
                         }
                         else {
-                            quote! { items.push(<#ir_path as burrtype::ir::IrExt>::get_ir()); }
+                            quote! { items.push(<#ir_path as burrtype_internal::ir::IrExt>::get_ir()); }
                         }
                     }
                     Err(err) => return err.into()
@@ -235,7 +222,7 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
             Item::Struct(inner) => {
                 let ident = &inner.ident;
                 let ir_path = if inline { quote!(#ident) } else { quote!(#name :: #ident) };
-                quote! { items.push(<#ir_path as burrtype::ir::IrExt>::get_ir()); }
+                quote! { items.push(<#ir_path as burrtype_internal::ir::IrExt>::get_ir()); }
             }
             _ => {
                 println!("skipping unsupported item");
@@ -247,14 +234,14 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
     // Build outputs
     let out_struct: Item = parse_quote!(pub struct #ir_name;);
     let out_modext_impl: Item = parse_quote!(
-        impl burrtype::ir::ModExt for #ir_name {
+        impl burrtype_internal::ir::ModExt for #ir_name {
             fn name() -> syn::Ident {
                 syn::parse_quote!(#name)
             }
             fn flatten() -> bool {
                 #flatten
             }
-            fn items() -> Vec<burrtype::ir::IrItem> {
+            fn items() -> Vec<burrtype_internal::ir::IrItem> {
                 let mut items = vec![];
                 #(#item_tokens)*
                 items
@@ -262,14 +249,14 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
         }
     );
     let out_irext_impl: Item = parse_quote!(
-        impl burrtype::ir::IrExt for #ir_name {
-            fn get_ir() -> burrtype::ir::IrItem {
-                burrtype::ir::IrMod {
+        impl burrtype_internal::ir::IrExt for #ir_name {
+            fn get_ir() -> burrtype_internal::ir::IrItem {
+                burrtype_internal::ir::IrMod {
                     name: syn::parse_quote!(#name),
                     ir_name: syn::parse_quote!(#ir_name),
                     flatten: #flatten,
                     inline: #inline,
-                    items: <#ir_name as burrtype::ir::ModExt>::items(),
+                    items: <#ir_name as burrtype_internal::ir::ModExt>::items(),
                 }.into()
             }
         }

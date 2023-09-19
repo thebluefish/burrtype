@@ -1,21 +1,18 @@
 mod burrmod;
-mod file;
 mod format;
 mod item;
-mod output;
 mod target;
+
+pub use burrmod::*;
+pub use format::*;
+pub use item::*;
+pub use target::*;
 
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Error as IoError, Write};
 use std::path::{Path, PathBuf};
 use path_macro::path;
-pub use burrmod::*;
-pub use file::*;
-pub use format::*;
-pub use item::*;
-pub use output::*;
-pub use target::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ExportError {
@@ -57,7 +54,7 @@ impl Burrxporter {
     }
 
     /// Sets root path for exports
-    pub fn root(mut self, to: &Path) -> Result<Self, ExportError> {
+    pub fn with_root(mut self, to: &Path) -> Result<Self, ExportError> {
         self.root = Some(to.to_path_buf());
         Ok(self)
     }

@@ -1,4 +1,4 @@
-use burrtype::prelude::*;
+use burrtype_internal::prelude::*;
 use proc_macro::TokenStream as ProcTokenStream;
 use proc_macro2::{Ident, Literal, TokenStream, Span};
 use quote::{quote, quote_spanned, ToTokens};

@@ -1,6 +1,5 @@
-use proc_macro2::{Ident, Literal, Span, TokenStream};
-use syn::{Attribute, Data, Item, ItemMod, spanned::Spanned};
 use super::IrItem;
+use proc_macro2::Ident;
 
 pub trait IrExt {
     fn get_ir() -> IrItem;

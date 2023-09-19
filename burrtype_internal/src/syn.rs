@@ -1,5 +1,5 @@
-use proc_macro2::{Ident, Literal, Span, TokenStream};
-use syn::{Attribute, Path, Item, ItemMod, spanned::Spanned};
+use proc_macro2::Ident;
+use syn::{Attribute, Path, Item};
 
 pub trait SynIdent {
     /// Checks whether the item matches the ident regardless of path
