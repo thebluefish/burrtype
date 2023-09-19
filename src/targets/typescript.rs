@@ -1,21 +1,27 @@
+mod file;
+
 use std::any::TypeId;
 use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fmt::{format};
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use path_macro::path;
-use crate::export::{BurrFile, Burrmatter, BurrMod, Burrxporter, Item, Target};
+use path_slash::*;
+use crate::export::{Burrmatter, BurrMod, Burrxporter, Item, Target};
 use crate::ir::{IrNamedStruct, IrTupleStruct, IrType, IrUnitStruct};
 use crate::syn::SynIdent;
 use inflector::Inflector;
+use proc_macro2::Ident;
 use quote::ToTokens;
+use crate::targets::typescript::file::TsFile;
 
 /// Determines how we want to map modules to files
 // todo: consider moving this and related logic to some sort of common writer
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ModFileMap {
     /// Everything will be written to one file
     /// All modules will be inlined
+    /// This implies `IndexGeneratorType::None`
     Inline,
     /// Top-level modules will be written to individual files
     /// Nested modules will be inlined
@@ -25,12 +31,23 @@ pub enum ModFileMap {
     DecomposeAll,
 }
 
+/// Determines how we want to generate indices
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum IndexGeneratorType {
+    /// Every file belonging to a directory, relative to the root, will have its exports indexed
+    Full,
+    /// All files will have their exports written to a single index at the root
+    Flat,
+    /// No indices will be generates for modules
+    None,
+}
+
 pub struct TypeScript<'t> {
     pub formatter: TsFormatter<'t>,
     pub mod_file_map: ModFileMap,
+    pub index_generator: IndexGeneratorType,
     /// replaces Rust types with TS types during export
     pub type_map: HashMap<TypeId, &'t str>,
-    pub file_type_map: HashMap<TypeId, BurrFile>,
     // pub file_case: FileCase, // move this type to a "targets/common" or such utility mod
 }
 
@@ -38,9 +55,9 @@ impl<'t> Default for TypeScript<'t> {
     fn default() -> Self {
         TypeScript {
             formatter: TsFormatter::pretty(),
-            mod_file_map: ModFileMap::DecomposeTop,
+            mod_file_map: ModFileMap::DecomposeAll,
+            index_generator: IndexGeneratorType::Full,
             type_map: HashMap::default(),
-            file_type_map: Default::default(),
         }
     }
 }
@@ -81,8 +98,15 @@ impl<'t> TypeScript<'t> {
         self
     }
 
-    pub fn with_map(mut self, mod_file_map: ModFileMap) -> Self {
+    /// Controls how modules are mapped to files
+    pub fn with_file_map(mut self, mod_file_map: ModFileMap) -> Self {
         self.mod_file_map = mod_file_map;
+        self
+    }
+
+    /// Controls how indices are generated for exported directories
+    pub fn with_index_generator(mut self, index_generator: IndexGeneratorType) -> Self {
+        self.index_generator = index_generator;
         self
     }
 
@@ -96,159 +120,90 @@ impl<'t> TypeScript<'t> {
         }
     }
 
-    pub fn id_to_file(&'t self, id: &TypeId) -> Option<&'t BurrFile> {
-        self.file_type_map.get(id)
-    }
-
-    fn format_item(&mut self, file: &BurrFile, item: &Item) -> String {
+    fn format_item(&mut self, item: &Item) -> String {
         match item {
-            Item::Mod(inner) => self.format_mod(file, inner),
-            Item::NamedStruct(inner) => self.format_named_struct(file, inner),
-            Item::TupleStruct(inner) => self.format_tuple_struct(file, inner),
-            Item::UnitStruct(inner) => self.format_unit_struct(file, inner),
+            Item::NamedStruct(inner) => self.format_named_struct(inner),
+            Item::TupleStruct(inner) => self.format_tuple_struct(inner),
+            Item::UnitStruct(inner) => self.format_unit_struct(inner),
             _ => unimplemented!(),
         }
     }
 
-    fn format_file(&mut self, file: &BurrFile) -> String {
+    fn format_file(&mut self, file: &TsFile) -> String {
         let mut out = String::new();
 
-        if self.formatter.minify {
-            for (i, item) in file.items.iter().enumerate() {
-                if i > 0 {
-                    out.push_str("");
-                }
-                out.push_str(&self.format_item(file, item));
-            }
-        }
-        else {
-            for (i, item) in file.items.iter().enumerate() {
-                if i > 0 {
-                    out.push_str("\n");
-                }
-                out.push_str(&self.format_item(file, item));
+        for (i, item) in file.items.iter().enumerate() {
+            if i > 0 {
                 out.push_str("\n");
             }
+            out.push_str(&self.format_item(item));
+            out.push_str("\n");
         }
 
         out
     }
 
-    fn format_mod(&mut self, file: &BurrFile, item: &BurrMod) -> String {
+    fn format_mod(&mut self, item: &BurrMod) -> String {
         let mut out = String::new();
 
         // write mod header
-        if self.formatter.minify {
-            out.push_str(&format!("namespace {}{{", item.name.to_pascal_case()));
-        }
-        else {
-            out.push_str(&format!("{}namespace {} {{\n", self.formatter.get_indentation(), item.name.to_pascal_case()));
-            self.formatter.depth += 1;
-        }
+        out.push_str(&format!("{}namespace {} {{\n", self.formatter.get_indentation(), item.name.to_pascal_case()));
+        self.formatter.depth += 1;
         // write items
-        if self.formatter.minify {
-            for item in item.items.iter() {
-                out.push_str(&self.format_item(file, item));
-            }
-        }
-        else {
-            for (i, item) in item.items.iter().enumerate() {
-                if i > 0 {
-                    out.push_str("\n");
-                }
-                out.push_str(&self.format_item(file, item));
+
+        for (i, item) in item.items.iter().enumerate() {
+            if i > 0 {
                 out.push_str("\n");
             }
+            out.push_str(&self.format_item(item));
+            out.push_str("\n");
         }
         // write mod footer
-        if self.formatter.minify {
-            out.push_str("}");
-        }
-        else {
-            self.formatter.depth -= 1;
-            out.push_str(&format!("{}}}", self.formatter.get_indentation()));
-        }
+        self.formatter.depth -= 1;
+        out.push_str(&format!("{}}}", self.formatter.get_indentation()));
 
         out
     }
 
-    fn format_named_struct(&mut self, file: &BurrFile, item: &IrNamedStruct) -> String {
+    fn format_named_struct(&mut self, item: &IrNamedStruct) -> String {
         let mut out = String::new();
 
-        if self.formatter.minify {
-            out.push_str(&format!("export interface {}{{}};", item.name.to_string().to_pascal_case()));
+        // write struct header
+        out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
+        self.formatter.depth += 1;
+        // write items
+        for field in &item.fields {
+            out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name, self.get_item_name(&field.ty)));
         }
-        else {
-            out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
-            self.formatter.depth += 1;
-            for field in &item.fields {
-                let field_file = self.id_to_file(&field.ty.id);
-                println!("writing {field:?}");
-                // Ensure that we know of all types we're writing
-                if field_file.is_none() && !self.type_map.contains_key(&field.ty.id) {
-                    panic!("type '{}' unknown", field.ty.path.to_token_stream().to_string());
-                }
-                // We may need to reference types that aren't builtin
-                if let Some(ff) = field_file {
-                    // Types belonging to the same file can be referenced as-is
-                    if ff.target == file.target {
-                        out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name, self.get_item_name(&field.ty)));
-                    }
-                    // Types belonging to other files need to have their references written to this file
-                    // todo: figure out how to add references and write them before other items
-                    // perhaps the file-specific writer can build items and then organize them before writing any
-                    else {
-
-                    }
-                }
-                // Type is a builtin, so we'll write it out as-is
-                else {
-                    out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name, self.get_item_name(&field.ty)));
-                }
-            }
-            self.formatter.depth -= 1;
-            out.push_str(&format!("{}}}", self.formatter.get_indentation()));
-        }
+        // write struct tail
+        self.formatter.depth -= 1;
+        out.push_str(&format!("{}}}", self.formatter.get_indentation()));
 
         out
     }
 
-    fn format_tuple_struct(&mut self, file: &BurrFile, item: &IrTupleStruct) -> String {
+    fn format_tuple_struct(&mut self, item: &IrTupleStruct) -> String {
         let mut out = String::new();
 
-        if self.formatter.minify {
-            out.push_str(&format!("export type {} = [", item.name.to_string().to_pascal_case()));
-            for (i, field) in item.fields.iter().enumerate() {
-                if i > 0 {
-                    out.push_str(&format!(", "));
-                }
-                out.push_str(&self.get_item_name(&field));
+        // write struct header
+        out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
+        // write items
+        for (i, field) in item.fields.iter().enumerate() {
+            if i > 0 {
+                out.push_str(&format!(", "));
             }
-            out.push_str(&format!("];"));
+            out.push_str(&self.get_item_name(&field));
         }
-        else {
-            out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
-            for (i, field) in item.fields.iter().enumerate() {
-                if i > 0 {
-                    out.push_str(&format!(", "));
-                }
-                out.push_str(&self.get_item_name(&field));
-            }
-            out.push_str(&format!("]"));
-        }
+        // write struct tail
+        out.push_str(&format!("]"));
 
         out
     }
 
-    fn format_unit_struct(&mut self, file: &BurrFile, item: &IrUnitStruct) -> String {
+    fn format_unit_struct(&mut self, item: &IrUnitStruct) -> String {
         let mut out = String::new();
 
-        if self.formatter.minify {
-            out.push_str(&format!("export interface {}{{}};", item.name.to_string().to_pascal_case()));
-        }
-        else {
-            out.push_str(&format!("{}export interface {} {{}}", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
-        }
+        out.push_str(&format!("{}export interface {} {{}}", self.formatter.get_indentation(), item.name.to_string().to_pascal_case()));
 
         out
     }
@@ -261,7 +216,7 @@ impl<'f> Target for TypeScript<'f> {
         match self.mod_file_map {
             ModFileMap::Inline => {
                 // Collect items from all top-level modules into a single top-level file
-                let mut file: BurrFile = exporter.mods.iter().map(Clone::clone).reduce(|mut acc,bm| {
+                let mut file: TsFile = exporter.mods.iter().map(Clone::clone).reduce(|mut acc,bm| {
                     acc.items.extend(bm.items);
                     acc
                 }).unwrap().into();
@@ -273,36 +228,265 @@ impl<'f> Target for TypeScript<'f> {
                 // Convert modules into files
                 files.extend(exporter.mods.iter()
                     .map(Clone::clone)
-                    .map(Into::<BurrFile>::into)
+                    .map(Into::<TsFile>::into)
                     .map(|mut f| { f.target = path!(to / f.target); f })
                 );
             }
             ModFileMap::DecomposeAll => {
-                todo!()
-            }
-        }
-        // todo: first iterate files and build a list of real types contained within
-        // then figure out some way to get relative path from one file to another
-        // write references for all types external to a file
-        // log types that are not covered
-        for file in &files {
-            for (key, value) in &file.exports {
-                if let Some(k) = self.file_type_map.insert(key.clone(), file.clone()) {
-                    panic!("duplicate key exists for type: {value}");
+                for mut file in exporter.mods.iter()
+                    .map(Clone::clone)
+                    .map(Into::<TsFile>::into) {
+                    let children = decompose_all(&mut file);
+                    files.push(file);
+                    files.extend(children);
                 }
             }
         }
+
+        // build a map of all types being exported
+        let mut type_map: HashMap<TypeId, (Ident, PathBuf)> = HashMap::new();
         for file in &files {
-            println!("file {}", file.target.to_string_lossy());
-            let mut writer = exporter.open_writer(&file.target).unwrap();
-            writer.write(self.format_file(&file).as_bytes()).unwrap();
+            // Flatten all items in this file
+            let mut flat_items = Vec::new();
+            flat_items.extend(&file.items);
+            for bm in &file.mods {
+                flat_items.extend(pull_flat_items(bm));
+            }
+
+            for item in flat_items {
+                if let Some((_, old)) = type_map.insert(item.get_id(), (item.get_name().clone(), file.target.clone())) {
+                    // todo: make this return an error
+                    panic!("Type <{}> exported to multiple files:\n  old: {}\n  new: {}",
+                           item.get_name(),
+                           old.to_string_lossy(),
+                           file.target.to_string_lossy()
+                    );
+                }
+            }
         }
+
+        // build indices
+        let mut indices: HashMap<PathBuf, Vec<&TsFile>> = HashMap::new();
+        if self.mod_file_map != ModFileMap::Inline && self.index_generator != IndexGeneratorType::None {
+            for file in &files {
+                if let Some(parent) = file.target.parent() {
+                    indices.entry(parent.into()).or_default().push(file);
+                }
+            }
+        }
+
+        // // write indices
+        // for (index, children) in indices {
+        //     let mut out = String::new();
+        //     // build imports while collecting names for export
+        //     let mut names = children.into_iter().enumerate().map(|(i, child)| {
+        //         if i > 0 {
+        //             out.push_str("\n");
+        //         }
+        //         let name = child.name.to_pascal_case();
+        //         let path = path!("." / child.target.strip_prefix(&index).unwrap()).with_extension("");
+        //         out.push_str(&format!("import * as {} from '{}'", name, path.to_slash_lossy()));
+        //         name
+        //     }).collect::<Vec<_>>();
+        //
+        //     // build exports
+        //     if !names.is_empty() {
+        //         out.push_str("\n\nexport { ");
+        //         for (i, name) in names.into_iter().enumerate() {
+        //             if i > 0 {
+        //                 out.push_str(", ");
+        //             }
+        //             out.push_str(&format!("{name}"));
+        //         }
+        //         out.push_str(" }");
+        //     }
+        //
+        //     let mut writer = exporter.open_writer(&path!(index / "index.ts")).unwrap();
+        //     writer.write(out.as_bytes()).unwrap();
+        // }
+
+        // Export files
+        for file in &mut files {
+            println!("to {}", file.target.to_string_lossy());
+            let mut out = String::new();
+
+            // build imports
+            // these will be written first and should look like:
+            // import * as {name} from {path}
+            let mut field_types = HashSet::new();
+
+            for item in &file.items {
+                field_types.extend(get_fields(item));
+            }
+
+            for item in &file.mods {
+                field_types.extend(pull_fields(item));
+            }
+
+            println!("types: {field_types:?}");
+
+            let mut import_map: HashMap<PathBuf, HashSet<TypeId>> = HashMap::new();
+            for id in &field_types {
+                if let Some((_, file)) = type_map.get(id) {
+                    import_map.entry(file.clone()).or_default().insert(id.clone());
+                }
+            }
+            // remove self-references
+            import_map.remove(&file.target);
+
+            // iterate imports and write them
+            for (import, types) in &import_map {
+                println!("need to resolve {} from {} with {types:?}", import.to_slash_lossy(), file.target.to_slash_lossy());
+                // resolve relative path from other file to this one
+                let mut depth = 0;
+                let mut parent = file.target.parent();
+                let mut found = None;
+                while let Some(path) = parent {
+                    if let Ok(p) = import.strip_prefix(path) {
+                        found = Some(p.to_path_buf());
+                        println!("can import from {} at {depth}", p.to_slash_lossy());
+                        break
+                    }
+                    depth += 1;
+                    parent = path.parent();
+                }
+                let mut full_path = found.expect("Failed to find relative path for imports").with_extension("");
+                if depth == 0 {
+                    full_path = path!("." / full_path);
+                }
+                else {
+                    for _ in 0..depth {
+                        full_path = path!(".." / full_path);
+                    }
+                };
+                // write import head
+                out.push_str(&format!("import {{ "));
+                // write import items
+                for (i, ty) in types.iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(", ");
+                    }
+                    out.push_str(&format!("{}", type_map.get(ty).expect("type should be known by now").0));
+                }
+                // write import tail
+                out.push_str(&format!(" }} from '{}'\n", full_path.to_slash_lossy()));
+            }
+
+            // separate imports and exports, if any
+            if !import_map.is_empty() {
+                out.push_str("\n");
+            }
+
+            // write exports
+            for (i, item) in file.items.iter().enumerate() {
+                if i > 0 {
+                    out.push_str("\n");
+                }
+                out.push_str(&self.format_item(item));
+            }
+
+            // create and/or write file
+            let to = match &exporter.root {
+                Some(root) => path!(root / file.target),
+                None => file.target.clone(),
+            };
+            println!("writing to {}", to.to_slash_lossy());
+            let mut writer = exporter.open_writer(&to).unwrap();
+            writer.write(out.as_bytes()).unwrap();
+        }
+
+        // build imports for files
+        // fix references for types
+        // ideally imports should look something like
+//         ```ts
+//         import * as {name} from {path}
+//         export type foos = [name.Foo, name.Bar]
+//         ```
+
+        // todo: fix formatting so that it no longer relies on type mapping
+        // at this stage the type information has already been resolved and mapped into the relevant IR
+        // for file in &files {
+        //     for (key, value) in &file.exports {
+        //         if let Some(k) = self.file_type_map.insert(key.clone(), file.clone()) {
+        //             panic!("duplicate key exists for type: {value}");
+        //         }
+        //     }
+        // }
+        // for file in &files {
+        //     println!("file {}", file.target.to_string_lossy());
+        //     let mut writer = exporter.open_writer(&file.target).unwrap();
+        //     writer.write(self.format_file(&file).as_bytes()).unwrap();
+        // }
     }
+}
+
+/// Recursively convert a tree of modules into files and directories
+fn decompose_all(file: &mut TsFile) -> Vec<TsFile> {
+    let mut files = Vec::new();
+    // correct the file path for directories
+    if !file.mods.is_empty() {
+        file.target = path!(file.target.with_extension("") / "index.ts");
+    }
+    for mut child in file.mods.drain(..).map(Into::<TsFile>::into) {
+        // add prefix to child
+        if let Some(parent) = file.target.parent() {
+            if !parent.as_os_str().is_empty() {
+                child.target = path!(parent / child.target);
+            }
+        }
+        let children = decompose_all(&mut child);
+        files.push(child);
+        files.extend(children);
+    }
+    files
+}
+
+/// Gets a flat list of all items
+fn pull_flat_items(bm: &BurrMod) -> Vec<&Item> {
+    let mut items = Vec::new();
+    items.extend(bm.items.iter());
+    for child in &bm.children {
+        items.extend(pull_flat_items(child));
+    }
+
+    items
+}
+
+/// Gets a flat set of all types being used by a module
+fn pull_fields(bm: &BurrMod) -> HashSet<TypeId> {
+    let mut fields = HashSet::new();
+    for item in &bm.items {
+        fields.extend(get_fields(item));
+    }
+    for child in &bm.children {
+        fields.extend(pull_fields(child));
+    }
+    fields
+}
+
+/// Gets a flat set of all types being used by an item
+fn get_fields(item: &Item) -> HashSet<TypeId> {
+    let mut fields = HashSet::new();
+
+    match item {
+        Item::NamedStruct(inner) => {
+            for field in &inner.fields {
+                fields.insert(field.ty.id);
+            }
+        },
+        Item::TupleStruct(inner) => {
+            for field in &inner.fields {
+                fields.insert(field.id);
+            }
+        },
+        Item::UnitStruct(inner) => {}
+    }
+
+    fields
 }
 
 /// A formatter with options to cover most general cases
 pub struct TsFormatter<'t> {
-    minify: bool,
     depth: usize,
     tab: Cow<'t, str>,
     max_items_per_line: usize,
@@ -311,7 +495,6 @@ pub struct TsFormatter<'t> {
 impl<'t> TsFormatter<'t> {
     pub fn pretty() -> Self {
         TsFormatter {
-            minify: false,
             depth: 0,
             tab: "  ".into(),
             max_items_per_line: 12,
@@ -320,7 +503,6 @@ impl<'t> TsFormatter<'t> {
 
     pub fn minify() -> Self {
         TsFormatter {
-            minify: true,
             tab: "".into(),
             ..Self::pretty()
         }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bevy_reflect = { version = "0.11", optional = true }
 thiserror = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 quote = "1.0"
@@ -11,8 +12,8 @@ proc-macro2 = { version = "1.0", features = ["span-locations"] }
 itertools = "0.11"
 Inflector = "0.11"
 path_macro = "1.0"
+path-slash = "0.2"
 
 [dev-dependencies]
 burrtype_derive = { path = "./burrtype_derive" }
 anyhow = "1.0"
-bevy_reflect = "0.11"

@@ -1,5 +1,4 @@
 mod burrmod;
-mod file;
 mod format;
 mod item;
 mod output;
@@ -11,7 +10,6 @@ use std::io::{BufWriter, Error as IoError, Write};
 use std::path::{Path, PathBuf};
 use path_macro::path;
 pub use burrmod::*;
-pub use file::*;
 pub use format::*;
 pub use item::*;
 pub use output::*;
@@ -57,7 +55,7 @@ impl Burrxporter {
     }
 
     /// Sets root path for exports
-    pub fn root(mut self, to: &Path) -> Result<Self, ExportError> {
+    pub fn with_root(mut self, to: &Path) -> Result<Self, ExportError> {
         self.root = Some(to.to_path_buf());
         Ok(self)
     }

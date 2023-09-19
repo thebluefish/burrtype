@@ -135,7 +135,7 @@ pub fn burr_macro(input: ProcTokenStream) -> ProcTokenStream {
                         impl burrtype::ir::IrExt for #name {
                             fn get_ir() -> burrtype::ir::IrItem {
                                 burrtype::ir::IrUnitStruct {
-                                    name: syn::parse_quote!(#name)
+                                    name: syn::parse_quote!(#name),
                                     id: std::any::TypeId::of::<#name>(),
                                 }.into()
                             }
@@ -175,7 +175,6 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
     ).into();
 
     let mut item = parse_macro_input!(input as ItemMod);
-    // println!("item {} at {:?} : {:?}", item.ident, item.span().source_file().path(), item.span().start());
     let ir_item = parse_macro_input!(item_with_attr as ItemMod);
 
     let mut ir = match parse_mod(ir_item.clone()) {
@@ -185,15 +184,6 @@ pub fn burrmod(args: ProcTokenStream, input: ProcTokenStream) -> ProcTokenStream
 
     // process content into ir representation
     let (_, items) = ir_item.content.expect("unsupported opaque module");
-    // for item in &items {
-    //     let name = item.get_ident().unwrap().clone();
-    //     // if let Ok(item) = parse_item(item) {
-    //     //     ir.items.push(item);
-    //     // }
-    //     // else {
-    //     //     println!("skipping {name}");
-    //     // }
-    // }
 
     let IrMod { name, ir_name, flatten, inline, ..} = ir;
 

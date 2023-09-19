@@ -1,3 +1,7 @@
+use std::any::TypeId;
+use std::collections::HashMap;
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::*;
 use crate::ir::{IrExt, IrItem, ModExt};
 use crate::prelude::IrMod;
 use inflector::Inflector;
@@ -9,6 +13,9 @@ use super::item::Item;
 pub struct BurrMod {
     pub name: String,
     pub items: Vec<Item>,
+    #[cfg(feature = "bevy_reflect")]
+    pub registry: HashMap<TypeId, TypeRegistration>,
+    pub children: Vec<BurrMod>,
 }
 
 impl BurrMod {
@@ -16,6 +23,9 @@ impl BurrMod {
         BurrMod {
             name: target.into(),
             items: Vec::new(),
+            #[cfg(feature = "bevy_reflect")]
+            registry: HashMap::new(),
+            children: Vec::new(),
         }
     }
 
@@ -34,36 +44,34 @@ impl BurrMod {
         self
     }
 
+    #[cfg(feature = "bevy_reflect")]
+    pub fn with_reflection<T: GetTypeRegistration>(mut self) -> Self {
+        let registration = T::get_type_registration();
+        self.registry.insert(registration.type_id(), registration);
+        self
+    }
+
     pub fn with_item<IR: Into<Item>>(mut self, item: IR) -> Self {
         self.items.push(item.into());
         self
     }
 
-    pub fn extend<IR: Into<Item>>(mut self, other: IR) -> Self {
-        match other.into() {
-            Item::File(inner) => self.items.extend(inner.items),
-            Item::Mod(inner) => self.items.extend(inner.items),
-            _ => panic!("attempting to extend unsupported item"),
-        }
+    pub fn with_mod<M: Into<BurrMod>>(mut self, r#mod: M) -> Self {
+        self.children.push(r#mod.into());
         self
     }
 }
 
-pub trait BurrModExt: ModExt {
-    fn to_mod() -> BurrMod;
-}
-
-impl<T> BurrModExt for T where T: ModExt {
-    fn to_mod() -> BurrMod {
-        BurrMod {
-            name: T::name().to_string(),
-            items: T::items().into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<BurrMod> for Item {
-    fn from(value: BurrMod) -> Self {
-        Item::Mod(value)
-    }
-}
+// todo: fix this
+// pub trait BurrModExt: ModExt {
+//     fn to_mod() -> BurrMod;
+// }
+// 
+// impl<T> BurrModExt for T where T: ModExt {
+//     fn to_mod() -> BurrMod {
+//         BurrMod {
+//             name: T::name().to_string(),
+//             items: T::items().into_iter().map(Into::into).collect(),
+//         }
+//     }
+// }
