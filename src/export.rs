@@ -1,11 +1,7 @@
 mod burrmod;
-mod format;
-mod item;
 mod target;
 
 pub use burrmod::*;
-pub use format::*;
-pub use item::*;
 pub use target::*;
 
 use std::fs;
@@ -43,24 +39,20 @@ impl Burrxporter {
         }
     }
 
-    pub fn from_mod<M: Into<BurrMod>>(r#mod: M) -> Self {
-        Self::new().with_mod(r#mod)
-    }
-
     /// Adds input module to root collection
-    pub fn with_mod<M: Into<BurrMod>>(mut self, r#mod: M) -> Self {
+    pub fn with_mod<M: Into<BurrMod>>(&mut self, r#mod: M) -> &mut Self {
         self.mods.push(r#mod.into());
         self
     }
 
     /// Sets root path for exports
-    pub fn with_root(mut self, to: &Path) -> Result<Self, ExportError> {
+    pub fn with_root(&mut self, to: &Path) -> &mut Self {
         self.root = Some(to.to_path_buf());
-        Ok(self)
+        self
     }
 
     /// Adds output target with configuration
-    pub fn export<T: Target>(mut self, to: &Path, mut target: T) -> Result<Self, ExportError> {
+    pub fn export<T: Target>(&mut self, to: &Path, mut target: T) -> Result<&mut Self, ExportError> {
         target.export(to, &self);
         Ok(self)
     }
@@ -68,7 +60,7 @@ impl Burrxporter {
     /// Gets the writer for a file path
     /// Creates the directory and file if it does not exist, truncates if it does
     // todo: options for allowing user to plugin their writer, something like a Box<dyn Writer> or an enum Burrwriter<'t> { Owned, Shared<'t> }
-    pub fn open_writer(&self, to: &Path) -> Result<impl Write, ExportError> {
+    pub(crate) fn open_writer(&self, to: &Path) -> Result<impl Write, ExportError> {
         let path = self.root.as_ref().map_or_else(|| to.to_path_buf(), |root| path!(root / to));
 
         // Extract parent and ensure it exists

@@ -1,5 +1,4 @@
-pub use burrtype_internal::prelude::*;
-pub use burrtype_derive::{Burr, burrmod};
+pub use bevy_reflect::Reflect;
 
 pub use crate::export::{BurrMod, Burrxporter};
 #[cfg(feature = "typescript")]
