@@ -104,7 +104,7 @@ fn main() -> anyhow::Result<()> {
         )
         // Builds and writes outputs
         // The options associated with outputs should correspond to features specific to a language
-        .with_root("target/api")
+        .with_root("out/api")
         // exports each root-level mod to root/ts/{target}[.ts]
         .export("ts", TypeScript::new())?
         // exports all modules together to root/{target}[.ts]
