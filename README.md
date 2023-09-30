@@ -1,3 +1,6 @@
+![crates.io](https://img.shields.io/crates/v/burrtype.svg)
+![docs.rs](https://img.shields.io/docsrs/burrtype)
+
 Exports your types to other languages, currently supporting TypeScript.
 
 ## Install
@@ -6,8 +9,9 @@ Add to your `Cargo.toml`
 
 ```toml
 [dependencies]
-burrtype = { git = "https://github.com/thebluefish/burrtype", features = ["typescript"] }
-# I would like to remove this requirement in a future version of bevy_reflect, but for now you must include it too
+burrtype = { version = "0.1", features = ["typescript"] }
+# I would like to remove this requirement in a future version of bevy_reflect
+# but for now you must include it too
 bevy_reflect = "0.11"
 ```
 

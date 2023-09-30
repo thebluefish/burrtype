@@ -8,6 +8,9 @@ export interface Foo {
 /**  strike the earth! */
 export type DeepTupleStruct = [/**  Why do we care about such things */ number]
 
+/**  A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]
+
 /**  A named struct is defined by braces and fields with named */
 export interface NamedStruct {
   /**  Builtin types are supported and usually converted to primitives */
@@ -16,6 +19,3 @@ export interface NamedStruct {
  Type overrides can bypass the requirement for Reflect, but are per-language features */
   bar: Foo,
 }
-
-/**  A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]

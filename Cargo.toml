@@ -1,7 +1,10 @@
 [package]
 name = "burrtype"
+description = "A framework for exporting types to other languages"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/thebluefish/burrtype"
 
 [workspace]
 members = [
@@ -16,7 +19,7 @@ typescript = []
 comments = ["bevy_reflect/documentation"]
 
 [dependencies]
-burrtype_derive = { path = "burrtype_derive" }
+burrtype_derive = { path = "burrtype_derive", version = "0.1" }
 bevy_reflect = "0.11"
 thiserror = "1.0"
 Inflector = "0.11"
