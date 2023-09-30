@@ -1,6 +1,5 @@
-use super::{TsFile, TsFormatter, TypeScript};
-use crate::export::{BurrMod, Burrxporter};
-use bevy_reflect::prelude::*;
+use super::{TsFile, TsFormatter};
+use crate::export::Burrxporter;
 use bevy_reflect::{TypeInfo, TypeRegistration, VariantInfo};
 use inflector::Inflector;
 use std::any::TypeId;
@@ -10,10 +9,12 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
+use crate::type_registration::TypeRegistrationExt;
 
 /// An export-friendly version of the Typescript export builder
 /// Contains files being exported and computed metadata about files and their types
 pub struct TsExporter<'t> {
+    pub exporter: &'t Burrxporter,
     pub formatter: TsFormatter<'t>,
     /// maps file paths to files
     pub files: HashMap<PathBuf, TsFile>,
@@ -28,10 +29,9 @@ pub struct TsExporter<'t> {
 }
 
 impl<'t> TsExporter<'t> {
-    pub fn export(mut self, exporter: &Burrxporter) {
+    pub fn export(self) {
         // Export files
         for file in self.files.values() {
-            println!("to {}", file.target.to_string_lossy());
             let mut out = String::new();
 
             // build imports
@@ -40,14 +40,12 @@ impl<'t> TsExporter<'t> {
             let mut field_types = HashSet::new();
 
             for item in &file.items {
-                field_types.extend(get_fields(item));
+                field_types.extend(item.get_fields());
             }
 
             for item in &file.mods {
-                field_types.extend(pull_fields(item));
+                field_types.extend(item.pull_fields());
             }
-
-            println!("types: {field_types:?}");
 
             // get all used imports by target
             let mut import_map: HashMap<PathBuf, HashSet<TypeId>> = HashMap::new();
@@ -67,7 +65,6 @@ impl<'t> TsExporter<'t> {
 
             // iterate imports and write them
             for (import, types) in &import_map {
-                println!("need to resolve {} from {} with {types:?}", import.to_slash_lossy(), file.target.to_slash_lossy());
                 // resolve relative path from other file to this one
                 let mut depth = 0;
                 let mut parent = file.target.parent();
@@ -75,7 +72,6 @@ impl<'t> TsExporter<'t> {
                 while let Some(path) = parent {
                     if let Ok(p) = import.strip_prefix(path) {
                         found = Some(p.to_path_buf());
-                        println!("can import from {} at {depth}", p.to_slash_lossy());
                         break
                     }
                     depth += 1;
@@ -110,65 +106,25 @@ impl<'t> TsExporter<'t> {
             }
 
             // write exports
-            println!("exporting {} items", file.items.len());
             for (i, item) in file.items.iter().enumerate() {
                 if i > 0 {
                     out.push_str("\n");
                 }
                 out.push_str(&self.format_type(item));
+                out.push_str("\n");
             }
 
             // export to file
-            let to = match &exporter.root {
-                Some(root) => path!(root / file.target),
-                None => file.target.clone(),
-            };
             if out.is_empty() {
-                println!("skipping empty file: {}", to.to_slash_lossy());
+                println!("skipping empty file: {}", file.target.to_slash_lossy());
             }
             else {
-                println!("writing to: {}", to.to_slash_lossy());
+                println!("writing to: {}", file.target.to_slash_lossy());
 
-                let mut writer = exporter.open_writer(&to).unwrap();
+                let mut writer = self.exporter.open_writer(&file.target).unwrap();
                 writer.write(out.as_bytes()).unwrap();
             }
         }
-    }
-
-    fn format_file(&mut self, file: &TsFile) -> String {
-        let mut out = String::new();
-
-        for (i, item) in file.items.iter().enumerate() {
-            if i > 0 {
-                out.push_str("\n");
-            }
-            out.push_str(&self.format_type(item));
-            out.push_str("\n");
-        }
-
-        out
-    }
-
-    fn format_mod(&mut self, item: &BurrMod) -> String {
-        let mut out = String::new();
-
-        // write mod header
-        out.push_str(&format!("{}namespace {} {{\n", self.formatter.get_indentation(), item.name.to_pascal_case()));
-        self.formatter.depth.fetch_add(1, Ordering::Relaxed);
-        // write items
-
-        for (i, (_, item)) in item.types.iter().enumerate() {
-            if i > 0 {
-                out.push_str("\n");
-            }
-            out.push_str(&self.format_type(item));
-            out.push_str("\n");
-        }
-        // write mod footer
-        self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
-        out.push_str(&format!("{}}}", self.formatter.get_indentation()));
-
-        out
     }
 
     fn format_type(&self, registration: &TypeRegistration) -> String {
@@ -176,21 +132,36 @@ impl<'t> TsExporter<'t> {
         match registration.type_info() {
             TypeInfo::Struct(info) => {
                 // struct header
-                out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
-                self.formatter.depth.fetch_add(1, Ordering::Relaxed);
-                // struct items
-                for n in 0..info.field_len() {
-                    let field = info.field_at(n).unwrap();
-
-
-                    out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name(), self.get_field_name(field.type_id())));
+                #[cfg(feature = "comments")]
+                if let Some(docs) = info.docs() {
+                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
                 }
-                // struct tail
-                self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
-                out.push_str(&format!("{}}}", self.formatter.get_indentation()));
+                if info.field_len() == 0 {
+                    out.push_str(&format!("{}export interface {} {{}}", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
+                }
+                else {
+                    out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
+                    self.formatter.depth.fetch_add(1, Ordering::Relaxed);
+                    // struct items
+                    for n in 0..info.field_len() {
+                        let field = info.field_at(n).unwrap();
+                        #[cfg(feature = "comments")]
+                        if let Some(docs) = field.docs() {
+                            out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                        }
+                        out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name(), self.get_field_name(field.type_id())));
+                    }
+                    // struct tail
+                    self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                    out.push_str(&format!("{}}}", self.formatter.get_indentation()));
+                }
             }
             TypeInfo::TupleStruct(info) => {
                 // struct header
+                #[cfg(feature = "comments")]
+                if let Some(docs) = info.docs() {
+                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                }
                 out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
                 // struct items
                 for n in 0..info.field_len() {
@@ -204,13 +175,21 @@ impl<'t> TsExporter<'t> {
                         }
                     }
 
-                    out.push_str(&format!("{}{}", self.formatter.get_indentation(), self.get_field_name(field.type_id())));
+                    #[cfg(feature = "comments")]
+                    if let Some(docs) = field.docs() {
+                        out.push_str(&format!("/** {docs} */ "));
+                    }
+                    out.push_str( &self.get_field_name(field.type_id()));
                 }
                 // struct tail
                 out.push_str(&format!("]"));
             }
             TypeInfo::Enum(info) => {
                 // enum header
+                #[cfg(feature = "comments")]
+                if let Some(docs) = info.docs() {
+                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                }
                 out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
                 self.formatter.depth.fetch_add(1, Ordering::Relaxed);
 
@@ -218,6 +197,10 @@ impl<'t> TsExporter<'t> {
                     // variant items
                     match info.variant(var) {
                         Some(VariantInfo::Struct(info)) => {
+                            #[cfg(feature = "comments")]
+                            if let Some(docs) = info.docs() {
+                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                            }
                             let compact = self.formatter.compact_enum.map(|n| info.field_len() <= n).unwrap_or(false);
                             // struct variant head
                             if compact {
@@ -234,9 +217,17 @@ impl<'t> TsExporter<'t> {
                                     if n > 0 {
                                         out.push_str(&format!(", "));
                                     }
+                                    #[cfg(feature = "comments")]
+                                    if let Some(docs) = field.docs() {
+                                        out.push_str(&format!("/** {docs} */ "));
+                                    }
                                     out.push_str(&format!("\"{}\": {}", field.name(), self.get_field_name(field.type_id())));
                                 }
                                 else {
+                                    #[cfg(feature = "comments")]
+                                    if let Some(docs) = field.docs() {
+                                        out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                                    }
                                     out.push_str(&format!("{}\"{}\": {},\n", self.formatter.get_indentation(), field.name(), self.get_field_name(field.type_id())));
                                 }
                             }
@@ -252,6 +243,10 @@ impl<'t> TsExporter<'t> {
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                         }
                         Some(VariantInfo::Tuple(info)) => {
+                            #[cfg(feature = "comments")]
+                            if let Some(docs) = info.docs() {
+                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                            }
                             out.push_str(&format!("{}| [", self.formatter.get_indentation()));
                             self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
@@ -259,6 +254,10 @@ impl<'t> TsExporter<'t> {
                                 let field = info.field_at(n).unwrap();
                                 if n > 0 {
                                     out.push_str(&format!(", "));
+                                }
+                                #[cfg(feature = "comments")]
+                                if let Some(docs) = field.docs() {
+                                    out.push_str(&format!("/** {docs} */ "));
                                 }
                                 out.push_str(&format!("{}", self.get_field_name(field.type_id())));
                             }
@@ -268,6 +267,10 @@ impl<'t> TsExporter<'t> {
                             out.push_str(&format!("]\n"));
                         }
                         Some(VariantInfo::Unit(info)) => {
+                            #[cfg(feature = "comments")]
+                            if let Some(docs) = info.docs() {
+                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                            }
                             out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), info.name()));
                         }
                         None => {}
@@ -297,75 +300,9 @@ impl<'t> TsExporter<'t> {
         else {
             self.type_registry
                 .get(target_id)
-                .expect("type not registered")
+                .unwrap_or_else(|| self.exporter.type_registry.get(target_id).expect("type not registered"))
                 .short_name()
                 .to_string()
         }
     }
-}
-
-/// Gets a flat set of all types being used by a module
-fn pull_fields(bm: &BurrMod) -> HashSet<TypeId> {
-    let mut fields = HashSet::new();
-    // iterate fields for each type and add field's TypeId to set
-    for (id, tr) in &bm.types {
-        fields.extend(get_fields(tr));
-    }
-    // then repeat this recursively
-    for child in &bm.children {
-        fields.extend(pull_fields(child));
-    }
-    fields
-}
-
-fn get_fields(registration: &TypeRegistration) -> HashSet<TypeId> {
-    let mut fields = HashSet::new();
-    match registration.type_info() {
-        TypeInfo::Struct(info) => {
-            for n in 0..info.field_len() {
-                fields.insert(info.field_at(n).unwrap().type_id());
-            }
-        }
-        TypeInfo::TupleStruct(info) => {
-            for n in 0..info.field_len() {
-                fields.insert(info.field_at(n).unwrap().type_id());
-            }
-        }
-        TypeInfo::Tuple(info) => {
-            for n in 0..info.field_len() {
-                fields.insert(info.field_at(n).unwrap().type_id());
-            }
-        }
-        TypeInfo::List(info) => {
-            fields.insert(info.item_type_id());
-        }
-        TypeInfo::Array(info) => {
-            fields.insert(info.item_type_id());
-        }
-        TypeInfo::Map(info) => {
-            fields.insert(info.key_type_id());
-            fields.insert(info.value_type_id());
-        }
-        TypeInfo::Enum(info) => {
-            for variant in info.iter() {
-                match variant {
-                    VariantInfo::Struct(inner) => {
-                        for n in 0..inner.field_len() {
-                            fields.insert(inner.field_at(n).unwrap().type_id());
-                        }
-                    }
-                    VariantInfo::Tuple(inner) => {
-                        for n in 0..inner.field_len() {
-                            fields.insert(inner.field_at(n).unwrap().type_id());
-                        }
-                    }
-                    VariantInfo::Unit(inner) => {}
-                }
-            }
-        }
-        TypeInfo::Value(info) => {
-            fields.insert(info.type_id());
-        }
-    }
-    fields
 }

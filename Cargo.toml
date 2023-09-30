@@ -3,17 +3,29 @@ name = "burrtype"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    ".",
+    "burrtype_derive",
+    "examples/sandbox",
+]
+
 [features]
-default = ["typescript"]
+default = ["comments"]
 typescript = []
+comments = ["bevy_reflect/documentation"]
 
 [dependencies]
+burrtype_derive = { path = "burrtype_derive" }
 bevy_reflect = "0.11"
 thiserror = "1.0"
 itertools = "0.11"
 Inflector = "0.11"
 path_macro = "1.0"
 path-slash = "0.2"
+syn = "2.0"
+quote = "1.0"
+linkme = "0.3"
 
 [dev-dependencies]
 anyhow = "1.0"

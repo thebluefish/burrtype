@@ -5,16 +5,14 @@ pub use file::*;
 
 use exporter::*;
 use crate::export::{BurrMod, Burrxporter, Target};
-use std::any::{Any, TypeId};
+use std::any::{TypeId};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use bevy_reflect::{TypeInfo, TypeRegistration, VariantInfo};
+use bevy_reflect::{TypeRegistration};
 use path_macro::path;
 use path_slash::*;
-use inflector::Inflector;
 
 /// Determines how we want to map modules to files
 // todo: consider moving this and related logic to some sort of common writer
@@ -32,21 +30,9 @@ pub enum ModFileMap {
     DecomposeAll,
 }
 
-/// Determines how we want to generate indices
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum IndexGeneratorType {
-    /// Every file belonging to a directory, relative to the root, will have its exports indexed
-    Full,
-    /// All files will have their exports written to a single index at the root
-    Flat,
-    /// No indices will be generates for modules
-    None,
-}
-
 pub struct TypeScript<'t> {
     pub formatter: TsFormatter<'t>,
     pub mod_file_map: ModFileMap,
-    pub index_generator: IndexGeneratorType,
     /// replaces Rust types with TS types during export
     /// todo: fill this during phase 1 of export, then consume it for export?
     /// todo:: consider also converting this struct to something similar with another field for this specific purpose?
@@ -61,7 +47,6 @@ impl<'t> Default for TypeScript<'t> {
         TypeScript {
             formatter: TsFormatter::pretty(),
             mod_file_map: ModFileMap::DecomposeAll,
-            index_generator: IndexGeneratorType::Full,
             type_map: HashMap::default(),
             type_overrides: Default::default(),
         }
@@ -105,7 +90,7 @@ impl<'t> TypeScript<'t> {
     }
 
     /// Substitutes F with T when writing fields
-    pub fn with_type_remap<F: ?Sized + 'static, T: ?Sized + 'static>(mut self, name: &'t str) -> Self {
+    pub fn with_type_remap<F: ?Sized + 'static, T: ?Sized + 'static>(mut self) -> Self {
         self.type_overrides.insert(TypeId::of::<F>(), TypeId::of::<T>());
         self
     }
@@ -121,17 +106,39 @@ impl<'t> TypeScript<'t> {
         self.mod_file_map = mod_file_map;
         self
     }
+}
 
-    /// Controls how indices are generated for exported directories
-    pub fn with_index_generator(mut self, index_generator: IndexGeneratorType) -> Self {
-        self.index_generator = index_generator;
-        self
-    }
+impl<'f> Target for TypeScript<'f> {
+    fn export(self, to: &Path, exporter: &Burrxporter) {
+        // build our export-friendly type and export it
+        let TypeScript { formatter, mod_file_map, type_map, type_overrides } = self;
+        let mut mods = exporter.mods.clone();
 
-    pub fn build(self, to: &'t Path, mods: Vec<BurrMod>) -> TsExporter<'t> {
-        let TypeScript { formatter, mod_file_map, index_generator, type_map, type_overrides } = self;
+        // collect types that are being imported, but are not explicitly exported by the user
+        // then write them to the "default" module
+        // todo: consider moving this a target-agnostic method on Burrxporter
+        if let Some(target) = &exporter.default_mod {
+            let mut bm = BurrMod::new(target);
 
-        // Builds the set of files to write
+            let mut exporting = HashSet::<TypeId>::new();
+            let mut importing = HashSet::<TypeId>::new();
+            for om in &mods {
+                exporting.extend(om.types.keys().map(Clone::clone));
+                importing.extend(om.pull_fields());
+            }
+
+            for id in importing.difference(&exporting) {
+                // todo: consider handling the None case
+                // this usually means we have encountered a builtin such as usize or String, but might not always
+                if let Some(tr) = exporter.type_registry.get(id) {
+                    bm.types.insert(id.clone(), tr.clone());
+                }
+            }
+
+            mods.push(bm);
+        }
+
+        // builds the set of files to write
         let mut files = HashMap::new();
         match mod_file_map {
             ModFileMap::Inline => {
@@ -194,6 +201,7 @@ impl<'t> TypeScript<'t> {
         }
 
         TsExporter {
+            exporter,
             formatter,
             files,
             type_registry,
@@ -201,20 +209,11 @@ impl<'t> TypeScript<'t> {
             type_overrides,
             type_strings: type_map,
         }
-    }
-}
-
-impl<'f> Target for TypeScript<'f> {
-    fn export(mut self, to: &Path, exporter: &Burrxporter) {
-        // build our export-friendly type and export it
-        self
-            .build(to, exporter.mods.clone())
-            .export(exporter);
+        .export();
     }
 }
 
 fn flatten_all(target: &mut TsFile, mods: Vec<BurrMod>) {
-    println!("flattening {} children into {}", mods.len(), target.name);
     for child in mods {
         target.items.extend(child.types.into_values());
         flatten_all(target, child.children);

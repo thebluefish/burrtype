@@ -1,0 +1,9 @@
+[package]
+name = "sandbox"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+burrtype = { path = "../..", features = ["typescript"] }
+bevy_reflect = "0.11"
+anyhow = "1.0"
