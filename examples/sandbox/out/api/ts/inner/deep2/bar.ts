@@ -1,5 +1,8 @@
 import { TupleStruct, Foo, NamedStruct, DeepTupleStruct } from '../../common'
 
+/**  A unit struct has no shape nor fields */
+export interface UnitStruct {}
+
 /**  An enum's variants correlate with struct variants */
 export type Enum =
   /**  A struct variant is defined by braces and fields with named */
@@ -17,6 +20,3 @@ export type Enum =
       "four": Foo,
     }
 ;
-
-/**  A unit struct has no shape nor fields */
-export interface UnitStruct {}
