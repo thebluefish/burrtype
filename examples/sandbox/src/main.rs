@@ -9,6 +9,9 @@ pub struct Foo {
     pub two: String,
 }
 
+#[derive(Reflect)]
+pub struct Bar(Foo);
+
 /// Aim soon to support #[burrmod] for organizing a set of items within an inline module
 /// Note this will never work for file-based modules, only inline ones
 pub mod inner {
