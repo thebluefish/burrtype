@@ -1,17 +1,16 @@
 mod burrmod;
-mod format;
-mod item;
 mod target;
 
+use std::any::TypeId;
+use std::collections::HashMap;
 pub use burrmod::*;
-pub use format::*;
-pub use item::*;
 pub use target::*;
 
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Error as IoError, Write};
 use std::path::{Path, PathBuf};
+use bevy_reflect::TypeRegistration;
 use path_macro::path;
 
 #[derive(thiserror::Error, Debug)]
@@ -33,42 +32,53 @@ pub enum ExportError {
 pub struct Burrxporter {
     pub mods: Vec<BurrMod>,
     pub root: Option<PathBuf>,
+    pub default_mod: Option<String>,
+    pub type_registry: HashMap<TypeId, TypeRegistration>,
 }
 
 impl Burrxporter {
     pub fn new() -> Self {
+        let mut type_registry = HashMap::with_capacity(crate::TYPES.len());
+        type_registry.extend(crate::TYPES.iter().map(|ty_fn| {
+            let tr = ty_fn();
+            (tr.type_id(), tr)
+        }));
+
         Burrxporter {
             mods: Vec::new(),
             root: None,
+            default_mod: None,
+            type_registry,
         }
     }
 
-    pub fn from_mod<M: Into<BurrMod>>(r#mod: M) -> Self {
-        Self::new().with_mod(r#mod)
+    /// Sets the "default" mod, where unspecified imports will be exported to
+    pub fn with_default_mod<S: Into<String>>(&mut self, target: S) -> &mut Self {
+        self.default_mod = Some(target.into());
+        self
     }
 
-    /// Adds input module to root collection
-    pub fn with_mod<M: Into<BurrMod>>(mut self, r#mod: M) -> Self {
+    pub fn with_mod<M: Into<BurrMod>>(&mut self, r#mod: M) -> &mut Self {
         self.mods.push(r#mod.into());
         self
     }
 
     /// Sets root path for exports
-    pub fn with_root(mut self, to: &Path) -> Result<Self, ExportError> {
-        self.root = Some(to.to_path_buf());
-        Ok(self)
+    pub fn with_root<P: Into<PathBuf>>(&mut self, to: P) -> &mut Self {
+        self.root = Some(to.into());
+        self
     }
 
     /// Adds output target with configuration
-    pub fn export<T: Target>(mut self, to: &Path, mut target: T) -> Result<Self, ExportError> {
-        target.export(to, &self);
+    pub fn export<P: AsRef<Path>, T: Target>(&mut self, to: P, target: T) -> Result<&mut Self, ExportError> {
+        target.export(to.as_ref(), &self);
         Ok(self)
     }
 
     /// Gets the writer for a file path
     /// Creates the directory and file if it does not exist, truncates if it does
     // todo: options for allowing user to plugin their writer, something like a Box<dyn Writer> or an enum Burrwriter<'t> { Owned, Shared<'t> }
-    pub fn open_writer(&self, to: &Path) -> Result<impl Write, ExportError> {
+    pub(crate) fn open_writer(&self, to: &Path) -> Result<impl Write, ExportError> {
         let path = self.root.as_ref().map_or_else(|| to.to_path_buf(), |root| path!(root / to));
 
         // Extract parent and ensure it exists

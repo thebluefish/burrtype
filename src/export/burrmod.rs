@@ -1,16 +1,13 @@
-use burrtype_internal::ir::IrExt;
-use super::item::Item;
-#[cfg(feature = "bevy_reflect")]
 use bevy_reflect::*;
+use std::any::TypeId;
+use std::collections::{HashMap, HashSet};
+use crate::type_registration::TypeRegistrationExt;
 
 /// A collection of items to export
-/// Optionally configured for direct export
 #[derive(Clone, Debug)]
 pub struct BurrMod {
     pub name: String,
-    pub items: Vec<Item>,
-    #[cfg(feature = "bevy_reflect")]
-    pub registry: HashMap<TypeId, TypeRegistration>,
+    pub types: HashMap<TypeId, TypeRegistration>,
     pub children: Vec<BurrMod>,
 }
 
@@ -18,16 +15,23 @@ impl BurrMod {
     pub fn new<S: Into<String>>(target: S) -> Self {
         BurrMod {
             name: target.into(),
-            items: Vec::new(),
-            #[cfg(feature = "bevy_reflect")]
-            registry: HashMap::new(),
+            types: HashMap::new(),
             children: Vec::new(),
         }
     }
 
-    /// Sets the target this module will be exported to
-    pub fn target(&mut self, to: String) {
-        self.name = to;
+    /// Gets a flat set of all types being used by a module
+    pub fn pull_fields(&self) -> HashSet<TypeId> {
+        let mut fields = HashSet::new();
+        // iterate fields for each type and add field's TypeId to set
+        for (_, tr) in &self.types {
+            fields.extend(tr.get_fields());
+        }
+        // then repeat this recursively
+        for child in &self.children {
+            fields.extend(child.pull_fields());
+        }
+        fields
     }
 
     pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
@@ -35,20 +39,9 @@ impl BurrMod {
         self
     }
 
-    pub fn with_type<IR: IrExt>(mut self) -> Self {
-        self.items.push(IR::get_ir().into());
-        self
-    }
-
-    #[cfg(feature = "bevy_reflect")]
-    pub fn with_reflection<T: GetTypeRegistration>(mut self) -> Self {
+    pub fn with_type<T: GetTypeRegistration>(mut self) -> Self {
         let registration = T::get_type_registration();
-        self.registry.insert(registration.type_id(), registration);
-        self
-    }
-
-    pub fn with_item<IR: Into<Item>>(mut self, item: IR) -> Self {
-        self.items.push(item.into());
+        self.types.insert(registration.type_id(), registration);
         self
     }
 
@@ -57,17 +50,3 @@ impl BurrMod {
         self
     }
 }
-
-// todo: fix this
-// pub trait BurrModExt: ModExt {
-//     fn to_mod() -> BurrMod;
-// }
-// 
-// impl<T> BurrModExt for T where T: ModExt {
-//     fn to_mod() -> BurrMod {
-//         BurrMod {
-//             name: T::name().to_string(),
-//             items: T::items().into_iter().map(Into::into).collect(),
-//         }
-//     }
-// }

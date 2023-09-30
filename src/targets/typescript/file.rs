@@ -1,5 +1,6 @@
-use crate::export::{BurrMod, Item};
+use crate::export::{BurrMod};
 use std::path::PathBuf;
+use bevy_reflect::TypeRegistration;
 
 #[derive(Default, Debug)]
 pub struct TsFile {
@@ -8,7 +9,7 @@ pub struct TsFile {
     // the directory and file we are exporting to
     pub target: PathBuf,
     // our types being exported
-    pub items: Vec<Item>,
+    pub items: Vec<TypeRegistration>,
     // inline modules that need to be handled separately
     pub mods: Vec<BurrMod>,
 }
@@ -18,7 +19,7 @@ impl From<BurrMod> for TsFile {
         TsFile {
             name: value.name.clone(),
             target: PathBuf::from(value.name).with_extension("ts"),
-            items: value.items,
+            items: value.types.into_values().collect(),
             mods: value.children,
         }
     }
