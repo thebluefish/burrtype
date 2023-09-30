@@ -156,15 +156,16 @@ impl<'f> Target for TypeScript<'f> {
                 // Convert modules into files
                 files.extend(mods.into_iter()
                     .map(Into::<TsFile>::into)
-                    .map(|mut f| { f.target = path!(to / f.target); (f.target.clone(), f) })
+                    .map(|mut file| { file.target = path!(to / file.target); (file.target.clone(), file) })
                 );
             }
             ModFileMap::DecomposeAll => {
                 for mut file in mods.into_iter()
                     .map(Into::<TsFile>::into) {
                     let children = decompose_all(&mut file);
+                    file.target = path!(to / file.target);
                     files.insert(file.target.clone(), file);
-                    files.extend(children.into_iter().map(|file| (file.target.clone(), file)));
+                    files.extend(children.into_iter().map(|mut file| { file.target = path!(to / file.target);  (file.target.clone(), file) }));
                 }
             }
         }

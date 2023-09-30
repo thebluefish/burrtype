@@ -1,4 +1,4 @@
-import { TupleStruct, Foo, NamedStruct, DeepTupleStruct } from '../../common'
+import { DeepTupleStruct, NamedStruct, TupleStruct, Foo } from '../../common'
 
 /**  An enum's variants correlate with struct variants */
 export type Enum =

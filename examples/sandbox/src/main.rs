@@ -72,15 +72,7 @@ pub mod inner {
     }
 }
 
-// todo: re-add proc macro crate, remove most IR generation stuff
-// todo: focus the macros to primarily control options not present in Reflect, probably similarly to IR output but outputting a struct of options
-// todo: for example, to remap types from one to another during export, at the type level instead of having to specify the remap in a builder
-
-
-/// We should be able to call an API writer to export items
-/// The writer operates via builder patterns, with various options to control export
-/// We must provide the builder with all items we wish to export
-/// Then export files
+/// This example attempts to demonstrate the various features for exporting to a TypeScript target
 fn main() -> anyhow::Result<()> {
     println!("--- export ---\n");
 
