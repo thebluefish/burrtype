@@ -142,10 +142,11 @@ impl<'f> Target for TypeScript<'f> {
         let mut files = HashMap::new();
         match mod_file_map {
             ModFileMap::Inline => {
+                let to = to.with_extension("ts");
                 // Collect items from all top-level modules into a single top-level file
                 let mut file = TsFile {
                     name: to.to_slash_lossy().to_string(),
-                    target: to.with_extension("ts"),
+                    target: to,
                     ..Default::default()
                 };
                 flatten_all(&mut file, mods);

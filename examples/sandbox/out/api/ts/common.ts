@@ -1,6 +1,3 @@
-/**  A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]
-
 /**  The #[burr] attribute allows us to auto-include this type
  Later, we may support configuring target modules and the like via this attribute */
 export interface Foo {
@@ -10,6 +7,9 @@ export interface Foo {
 
 /**  strike the earth! */
 export type DeepTupleStruct = [/**  Why do we care about such things */ number]
+
+/**  A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]
 
 /**  A named struct is defined by braces and fields with named */
 export interface NamedStruct {
