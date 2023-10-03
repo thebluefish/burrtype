@@ -37,15 +37,17 @@ pub fn docs(attrs: &[Attribute]) -> TokenStream {
 }
 
 pub fn auto_registration_fn(name: Ident) -> TokenStream {
-    let fn_name = quote::format_ident!("burr_add_{}_type_registration", name.to_string().to_snake_case());
 
     #[cfg(feature = "auto_register")]
-    quote! {
-        #[burrtype::linkme::distributed_slice(burrtype::TYPES)]
-        #[linkme(crate = burrtype::linkme)]
-        #[doc(hidden)]
-        fn #fn_name() -> burrtype::ir::IrItem {
-            <#name as burrtype::ir::IrExt>::get_ir()
+    {
+        let fn_name = quote::format_ident!("burr_add_{}_type_registration", name.to_string().to_snake_case());
+            quote! {
+            #[burrtype::linkme::distributed_slice(burrtype::TYPES)]
+            #[linkme(crate = burrtype::linkme)]
+            #[doc(hidden)]
+            fn #fn_name() -> burrtype::ir::IrItem {
+                <#name as burrtype::ir::IrExt>::get_ir()
+            }
         }
     }
 
