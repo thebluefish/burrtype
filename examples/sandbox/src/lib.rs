@@ -30,12 +30,16 @@ pub mod inner {
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
     pub struct NamedStruct {
+        // todo: should this support some sort of type mocking?
         /// Type alias allows us to treat one type like another
-        /// This is useful if a type doesn't derive Burr
+        /// Here we treat a newtype like its known inner type
         #[burr(type = u64)]
         pub foo: PhantomType,
+        /// Here we treat a third-party type by its known serde representation
+        #[burr(type = f64)]
+        pub bar: rust_decimal::Decimal,
         /// We need to support optional fields, too
-        pub bar: Option<super::Foo>,
+        pub opt: Option<super::Foo>,
     }
 
     /// A tuple struct is defined by parenthesis and only types

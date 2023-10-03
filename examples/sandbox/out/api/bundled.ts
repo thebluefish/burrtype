@@ -1,5 +1,8 @@
 export type Bar = Foo
 
+/** A unit struct has no shape nor fields */
+export type UnitStruct = null
+
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
@@ -19,20 +22,9 @@ export type Enum =
     } }
 ;
 
-/** A unit struct has no shape nor fields */
-export type UnitStruct = null
-
 /** strike the earth! */
 /** Why do we care about such things */
 export type DeepTupleStruct = number
-
-export interface NamedStruct {
-  /** Type alias allows us to treat one type like another
-This is useful if a type doesn't derive Burr */
-  foo: number,
-  /** We need to support optional fields, too */
-  bar?: Foo,
-}
 
 /** A named struct is defined by braces and fields with named */
 export interface Foo {
@@ -43,3 +35,13 @@ export interface Foo {
 
 /** A tuple struct is defined by parenthesis and only types */
 export type TupleStruct = [number, Foo]
+
+export interface NamedStruct {
+  /** Type alias allows us to treat one type like another
+Here we treat a newtype like its known inner type */
+  foo: number,
+  /** Here we treat a third-party type by its known serde representation */
+  bar: number,
+  /** We need to support optional fields, too */
+  opt?: Foo,
+}

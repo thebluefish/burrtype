@@ -65,6 +65,7 @@ async function named_struct() {
 
     let data: NamedStruct = {
         foo: 4,
+        bar: 420.69,
     }
 
     await client.post('/named_struct', data)

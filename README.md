@@ -9,25 +9,35 @@ Add to your `Cargo.toml`
 
 ```toml
 [dependencies]
-burrtype = { version = "0.1", features = ["typescript"] }
-# I would like to remove this requirement in a future version of bevy_reflect
-# but for now you must include it too
-bevy_reflect = "0.11"
+burrtype = { version = "0.2", features = ["typescript"] }
 ```
 
 ## Use
 
-Decorate your types with the `Reflect` derive macro. Optionally include the `#[burr]` attribute to auto-register them.
+Decorate your types with the `Burr` derive macro.
 
 ```rust
 use burrtype::prelude::*;
 
-#[derive(Reflect)]
-#[burr]
+#[derive(Burr)]
 pub struct Foo(u64);
 
-#[derive(Reflect)]
+#[derive(Burr)]
 pub struct Bar(Foo);
+```
+
+For types that don't derive `Burr`, such as those from third-party crates, use an attribute to treat fields as different types:
+
+```rust
+    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    pub struct PhantomType(pub u64);
+
+    #[derive(Burr)]
+    pub struct Foo {
+        /// We will treat this type as its inner type for simplicity
+        #[burr(type = u64)]
+        pub foo: PhantomType,
+    }
 ```
 
 In your `build.rs` or another binary, we can create an exporter, add your types to be exported, and then write those types to your desired language(s).

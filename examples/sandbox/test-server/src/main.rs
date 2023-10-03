@@ -1,6 +1,7 @@
 use sandbox::{*, inner::{*, bar::DeepTupleStruct}};
 use std::net::SocketAddr;
 use axum::{Json, Router, routing::get};
+use rust_decimal::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -60,7 +61,8 @@ async fn get_deep_tuple_struct() -> Json<DeepTupleStruct> {
 async fn get_named_struct() -> Json<inner::NamedStruct> {
     let data = inner::NamedStruct {
         foo: inner::PhantomType(42),
-        bar: Some(Foo {
+        bar: Decimal::from_str("1.32").unwrap(),
+        opt: Some(Foo {
             one: 1,
             two: "2".to_string(),
         }),

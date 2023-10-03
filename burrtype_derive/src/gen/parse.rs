@@ -147,7 +147,7 @@ pub fn named_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
 
 /// Unnamed fields can have the following attributes:
 /// #[burr(ignore)]
-/// #[burr(ty = T]
+/// #[burr(type = T)]
 pub fn unnamed_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
     let mut ignore = false;
     let mut ty = None;
@@ -162,7 +162,7 @@ pub fn unnamed_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
                             Meta::Path(path) if path.is_ident("ignore") => {
                                 ignore = true;
                             }
-                            Meta::NameValue(meta) if meta.path.is_ident("ty") => {
+                            Meta::KeywordValue(meta) if meta.path == "type" => {
                                 let value = &meta.value;
                                 ty = Some(parse_quote!(#value));
                             }
