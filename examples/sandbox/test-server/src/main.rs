@@ -58,9 +58,9 @@ async fn get_deep_tuple_struct() -> Json<DeepTupleStruct> {
     Json(data)
 }
 
-async fn get_named_struct() -> Json<inner::NamedStruct> {
-    let data = inner::NamedStruct {
-        foo: inner::PhantomType(42),
+async fn get_named_struct() -> Json<NamedStruct> {
+    let data = NamedStruct {
+        foo: PhantomType(42),
         bar: Decimal::from_str("1.32").unwrap(),
         opt: Some(Foo {
             one: 1,
