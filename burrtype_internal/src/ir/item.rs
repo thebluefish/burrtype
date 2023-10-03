@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use std::collections::HashSet;
 use super::{IrNamedStruct, IrTupleStruct, IrUnitStruct};
-use syn::{Ident, Type};
+use syn::Ident;
 use crate::ir::IrEnum;
 
 #[derive(Clone, Debug)]

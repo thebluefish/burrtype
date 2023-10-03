@@ -6,7 +6,7 @@ pub trait IrExt {
 }
 
 impl<IR: IrExt> From<IR> for IrItem {
-    fn from(value: IR) -> Self {
+    fn from(_: IR) -> Self {
         IR::get_ir()
     }
 }

@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote_spanned, TokenStreamExt, ToTokens};
-use syn::{Attribute, Expr, Field, GenericArgument, MetaList, MetaNameValue, parse_quote, Path, PathArguments, Token, Type, TypePath};
+use quote::{quote_spanned, ToTokens};
+use syn::{Expr, Field, GenericArgument, MetaList, MetaNameValue, parse_quote, Path, PathArguments, Token, Type};
 use syn::ext::IdentExt;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;

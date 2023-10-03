@@ -55,6 +55,7 @@ pub mod inner {
             foo: super::Foo,
             bar: String,
         },
+        TinyTuple(String),
         /// A tuple variant is defined by parenthesis and only types
         Tuple(
             /// Give some meaning to these nameless types

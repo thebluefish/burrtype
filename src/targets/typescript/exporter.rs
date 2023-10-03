@@ -133,7 +133,7 @@ impl<'t> TsExporter<'t> {
             IrItem::NamedStruct(ir) => {
                 // struct header
                 #[cfg(feature = "comments")]
-                for doc in ir.docs {
+                if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
                 out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
@@ -142,7 +142,7 @@ impl<'t> TsExporter<'t> {
                 // struct items
                 for field in &ir.fields {
                     #[cfg(feature = "comments")]
-                    for doc in field.docs {
+                    if let Some(doc) = field.docs {
                         out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                     }
 
@@ -161,7 +161,7 @@ impl<'t> TsExporter<'t> {
             IrItem::TupleStruct(ir) => {
                 // struct header
                 #[cfg(feature = "comments")]
-                for doc in ir.docs {
+                if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
                 // tuples with exactly one field are colloquially considered "newtypes" and often treated as such
@@ -170,7 +170,7 @@ impl<'t> TsExporter<'t> {
                 if ir.fields.len() == 1 {
                     let field = ir.fields.first().unwrap();
                     #[cfg(feature = "comments")]
-                    for doc in field.docs {
+                    if let Some(doc) = field.docs {
                         out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                     }
                     out.push_str(&format!("{}export type {} = {}",
@@ -193,7 +193,7 @@ impl<'t> TsExporter<'t> {
                         }
 
                         #[cfg(feature = "comments")]
-                        for doc in field.docs {
+                        if let Some(doc) = field.docs {
                             out.push_str(&format!("/** {doc} */ "));
                         }
                         out.push_str( &self.get_field_name(field.ty.id));
@@ -204,7 +204,7 @@ impl<'t> TsExporter<'t> {
             }
             IrItem::UnitStruct(ir) => {
                 #[cfg(feature = "comments")]
-                for doc in ir.docs {
+                if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
                 out.push_str(&format!("{}export type {} = null", self.formatter.get_indentation(), ir.ident.to_string().to_pascal_case()));
@@ -212,7 +212,7 @@ impl<'t> TsExporter<'t> {
             IrItem::Enum(ir) => {
                 // enum header
                 #[cfg(feature = "comments")]
-                for doc in ir.docs {
+                if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
                 out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
@@ -222,7 +222,7 @@ impl<'t> TsExporter<'t> {
                     match var {
                         IrEnumVariant::Struct(ir) => {
                             #[cfg(feature = "comments")]
-                            for doc in ir.docs {
+                            if let Some(doc) = ir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
                             let compact = self.formatter.compact_enum.map(|n| ir.fields.len() <= n).unwrap_or(false);
@@ -241,7 +241,7 @@ impl<'t> TsExporter<'t> {
                                         out.push_str(&format!(", "));
                                     }
                                     #[cfg(feature = "comments")]
-                                    for doc in field.docs {
+                                    if let Some(doc) = field.docs {
                                         out.push_str(&format!("/** {doc} */ "));
                                     }
                                     out.push_str(&format!("{}{}: {}",
@@ -252,7 +252,7 @@ impl<'t> TsExporter<'t> {
                                 }
                                 else {
                                     #[cfg(feature = "comments")]
-                                    for doc in field.docs {
+                                    if let Some(doc) = field.docs {
                                         out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                                     }
                                     out.push_str(&format!("{}{}{}: {},\n",
@@ -276,37 +276,51 @@ impl<'t> TsExporter<'t> {
                         }
                         IrEnumVariant::Tuple(ir) => {
                             #[cfg(feature = "comments")]
-                            for doc in ir.docs {
+                            if let Some(doc) = ir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), var.name()));
-                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
-
-                            for (n, field) in ir.fields.iter().enumerate() {
-                                if n > 0 {
-                                    out.push_str(&format!(", "));
-                                }
+                            if ir.fields.len() == 1 {
+                                let field = ir.fields.first().unwrap();
                                 #[cfg(feature = "comments")]
-                                for doc in field.docs {
+                                if let Some(doc) = field.docs {
                                     out.push_str(&format!("/** {doc} */ "));
                                 }
-                                out.push_str(&format!("{}", self.get_field_name(field.ty.id)));
+                                out.push_str(&format!("{}| {{ {}: {} }}\n",
+                                                      self.formatter.get_indentation(),
+                                                      var.name(),
+                                                      self.get_field_name(field.ty.id),
+                                ));
                             }
+                            else {
+                                out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), var.name()));
+                                self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                            // struct variant tail
-                            self.formatter.depth.fetch_sub(2, Ordering::Relaxed);
-                            out.push_str(&format!("] }}\n"));
+                                for (n, field) in ir.fields.iter().enumerate() {
+                                    if n > 0 {
+                                        out.push_str(&format!(", "));
+                                    }
+                                    #[cfg(feature = "comments")]
+                                    if let Some(doc) = field.docs {
+                                        out.push_str(&format!("/** {doc} */ "));
+                                    }
+                                    out.push_str(&format!("{}", self.get_field_name(field.ty.id)));
+                                }
+
+                                // struct variant tail
+                                self.formatter.depth.fetch_sub(2, Ordering::Relaxed);
+                                out.push_str(&format!("] }}\n"));
+                            }
                         }
                         IrEnumVariant::Unit(ir) => {
                             #[cfg(feature = "comments")]
-                            for doc in ir.docs {
+                            if let Some(doc) = ir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
                             out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), ir.name()));
                         }
                         IrEnumVariant::Discriminant(ir) => {
                             #[cfg(feature = "comments")]
-                            for doc in ir.docs {
+                            if let Some(doc) = ir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
                             out.push_str(&format!("{}| {}\n", self.formatter.get_indentation(), ir.expr.to_token_stream()));

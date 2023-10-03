@@ -1,9 +1,12 @@
-import { DeepTupleStruct, NamedStruct, TupleStruct, Foo } from './common'
+import { TupleStruct, Foo, DeepTupleStruct, NamedStruct } from './common'
+
+export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
   | { Struct: { /** An inline comment */ foo: Foo, bar: string }}
+  | { TinyTuple: string }
   /** A tuple variant is defined by parenthesis and only types */
   | { Tuple: [/** Give some meaning to these nameless types */ number, number] }
   /** A unit variant has no shape nor fields */
@@ -17,8 +20,6 @@ export type Enum =
       four: Foo,
     } }
 ;
-
-export type Bar = Foo
 
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null

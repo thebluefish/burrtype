@@ -1,8 +1,8 @@
 mod parse;
 
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{Attribute, DataEnum, Expr, Fields, FieldsNamed, FieldsUnnamed, Item, Lit, Meta, parse_quote, Type, Variant};
+use quote::quote;
+use syn::{Attribute, DataEnum, Expr, Fields, FieldsNamed, FieldsUnnamed, Lit, Meta, Variant};
 use inflector::Inflector;
 
 pub fn docs(attrs: &[Attribute]) -> TokenStream {

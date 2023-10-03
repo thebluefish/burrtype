@@ -1,4 +1,4 @@
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
 use burrtype_internal::ir::{IrEnumVariant, IrItem};
 use burrtype_internal::prelude::IrExt;

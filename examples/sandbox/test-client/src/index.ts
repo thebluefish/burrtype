@@ -27,6 +27,7 @@ async function run_all() {
     await unit_struct()
     await enum_struct()
     await enum_tuple()
+    await enum_tiny_tuple()
     await enum_unit()
     await enum_big_struct()
 }
@@ -113,6 +114,17 @@ async function enum_tuple() {
     }
 
     await client.post('/enum_tuple', data)
+}
+
+async function enum_tiny_tuple() {
+    let result = await client.get('/enum_tiny_tuple')
+    console.log("enum_tiny_tuple: ", result.data)
+
+    let data: Enum = {
+        TinyTuple: "lol",
+    }
+
+    await client.post('/enum_tiny_tuple', data)
 }
 
 async function enum_unit() {

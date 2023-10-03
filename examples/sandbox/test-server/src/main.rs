@@ -1,6 +1,6 @@
 use sandbox::{*, inner::{*, bar::DeepTupleStruct}};
 use std::net::SocketAddr;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{Json, Router, routing::get};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -13,6 +13,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/unit_struct", get(get_unit_struct).post(post_type::<UnitStruct>))
         .route("/enum_struct", get(get_enum_struct).post(post_type::<Enum>))
         .route("/enum_tuple", get(get_enum_tuple).post(post_type::<Enum>))
+        .route("/enum_tiny_tuple", get(get_enum_tiny_tuple).post(post_type::<Enum>))
         .route("/enum_unit", get(get_enum_unit).post(post_type::<Enum>))
         .route("/enum_big_struct", get(get_enum_big_struct).post(post_type::<Enum>))
     ;
@@ -94,6 +95,12 @@ async fn get_enum_struct() -> Json<Enum> {
 
 async fn get_enum_tuple() -> Json<Enum> {
     let data = Enum::Tuple(64, 128);
+
+    Json(data)
+}
+
+async fn get_enum_tiny_tuple() -> Json<Enum> {
+    let data = Enum::TinyTuple("kek".into());
 
     Json(data)
 }
