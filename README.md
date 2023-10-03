@@ -28,19 +28,6 @@ pub struct Foo(u64);
 pub struct Bar(Foo);
 ```
 
-For types that don't derive `Burr`, such as those from third-party crates, use an attribute to treat fields as different types:
-
-```rust
-    #[derive(serde::Serialize, serde::Deserialize, Debug)]
-    pub struct PhantomType(pub u64);
-
-    #[derive(Burr)]
-    pub struct Foo {
-        #[burr(type = u64)]
-        pub foo: PhantomType,
-    }
-```
-
 ### Exporting your types
 
 In your `build.rs` or another binary, we can create an exporter and optionally configure it. The exporter and its components behave as builder patterns.
@@ -69,6 +56,29 @@ Export to one or more targets.
 ```
 
 See these concepts in action in [the example](examples/sandbox/).
+
+### 3rd-party types
+
+For types that don't derive `Burr`, such as those from third-party crates, use an attribute to treat fields as another type:
+
+```rust
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct PhantomType(pub u64);
+
+#[derive(Burr)]
+pub struct Foo {
+    #[burr(type = u64)]
+    pub foo: PhantomType,
+}
+```
+
+Alternatively, you can register a 3rd-party type as a string name representing that type in the target language.
+
+```rust
+    .export("api", TypeScript::new()
+        .with_type_name::<rust_decimal::Decimal>("number")
+    )?
+```
 
 ---
 
