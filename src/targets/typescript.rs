@@ -10,9 +10,9 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use bevy_reflect::{TypeRegistration};
 use path_macro::path;
 use path_slash::*;
+use burrtype_internal::ir::IrItem;
 
 /// Determines how we want to map modules to files
 // todo: consider moving this and related logic to some sort of common writer
@@ -157,7 +157,13 @@ impl<'f> Target for TypeScript<'f> {
                 // Convert modules into files
                 files.extend(mods.into_iter()
                     .map(Into::<TsFile>::into)
-                    .map(|mut file| { file.target = path!(to / file.target); (file.target.clone(), file) })
+                    .map(|mut file| {
+                        file.target = path!(to / file.target);
+                        let mods = file.mods.drain(..).collect();
+                        flatten_all(&mut file, mods);
+
+                        (file.target.clone(), file)
+                    })
                 );
             }
             ModFileMap::DecomposeAll => {
@@ -172,7 +178,7 @@ impl<'f> Target for TypeScript<'f> {
         }
 
         // build a map of all types being exported
-        let mut type_registry: HashMap<TypeId, TypeRegistration> = HashMap::new();
+        let mut type_registry: HashMap<TypeId, IrItem> = HashMap::new();
         let mut type_exports: HashMap<TypeId, PathBuf> = HashMap::new();
         for file in files.values() {
             // Flatten all items in this file
@@ -186,15 +192,15 @@ impl<'f> Target for TypeScript<'f> {
                 if let Some(old) = type_registry.insert(item.type_id(), item.clone()) {
                     // todo: make this return an error
                     panic!("Type <{}> exported to multiple files:\n  old: {}\n  new: {}",
-                           item.short_name(),
-                           old.short_name(),
+                           item.ident(),
+                           old.ident(),
                            file.target.to_string_lossy()
                     );
                 }
                 if let Some(old) = type_exports.insert(item.type_id(), file.target.clone()) {
                     // todo: make this return an error
                     panic!("Type <{}> exported to multiple files:\n  old: {}\n  new: {}",
-                           item.short_name(),
+                           item.ident(),
                            old.to_string_lossy(),
                            file.target.to_string_lossy()
                     );
@@ -244,7 +250,7 @@ fn decompose_all(file: &mut TsFile) -> Vec<TsFile> {
 }
 
 /// Gets a flat list of all items
-fn pull_flat_items(bm: &BurrMod) -> Vec<&TypeRegistration> {
+fn pull_flat_items(bm: &BurrMod) -> Vec<&IrItem> {
     let mut items = Vec::new();
     items.extend(bm.types.values());
     for child in &bm.children {

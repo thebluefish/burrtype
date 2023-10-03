@@ -1,6 +1,5 @@
 use super::{TsFile, TsFormatter};
 use crate::export::Burrxporter;
-use bevy_reflect::{TypeInfo, TypeRegistration, VariantInfo};
 use inflector::Inflector;
 use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
@@ -9,7 +8,8 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
-use crate::type_registration::TypeRegistrationExt;
+use quote::ToTokens;
+use burrtype_internal::ir::{IrEnumVariant, IrItem};
 
 /// An export-friendly version of the Typescript export builder
 /// Contains files being exported and computed metadata about files and their types
@@ -18,8 +18,8 @@ pub struct TsExporter<'t> {
     pub formatter: TsFormatter<'t>,
     /// maps file paths to files
     pub files: HashMap<PathBuf, TsFile>,
-    /// type information for types being exported
-    pub type_registry: HashMap<TypeId, TypeRegistration>,
+    // /// type information for types being exported
+    pub type_registry: HashMap<TypeId, IrItem>,
     /// types being exported to file paths
     pub type_exports: HashMap<TypeId, PathBuf>,
     /// types being mapped to other types
@@ -40,7 +40,7 @@ impl<'t> TsExporter<'t> {
             let mut field_types = HashSet::new();
 
             for item in &file.items {
-                field_types.extend(item.get_fields());
+                field_types.extend(item.all_field_types());
             }
 
             for item in &file.mods {
@@ -93,8 +93,8 @@ impl<'t> TsExporter<'t> {
                     if i > 0 {
                         out.push_str(", ");
                     }
-                    let tr = self.type_registry.get(ty).expect("type should be known by now");
-                    out.push_str(&format!("{}", tr.short_name()));
+                    let item = self.type_registry.get(ty).expect("type should be known by now");
+                    out.push_str(&format!("{}", item.ident()));
                 }
                 // write import tail
                 out.push_str(&format!(" }} from '{}'\n", full_path.to_slash_lossy()));
@@ -127,162 +127,211 @@ impl<'t> TsExporter<'t> {
         }
     }
 
-    fn format_type(&self, registration: &TypeRegistration) -> String {
+    fn format_type(&self, item: &IrItem) -> String {
         let mut out = String::new();
-        match registration.type_info() {
-            TypeInfo::Struct(info) => {
+        match item {
+            IrItem::NamedStruct(ir) => {
                 // struct header
                 #[cfg(feature = "comments")]
-                if let Some(docs) = info.docs() {
-                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                if let Some(doc) = ir.docs {
+                    out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
-                if info.field_len() == 0 {
-                    out.push_str(&format!("{}export interface {} {{}}", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
-                }
-                else {
-                    out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
-                    self.formatter.depth.fetch_add(1, Ordering::Relaxed);
-                    // struct items
-                    for n in 0..info.field_len() {
-                        let field = info.field_at(n).unwrap();
-                        #[cfg(feature = "comments")]
-                        if let Some(docs) = field.docs() {
-                            out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
-                        }
-                        out.push_str(&format!("{}{}: {},\n", self.formatter.get_indentation(), field.name(), self.get_field_name(field.type_id())));
-                    }
-                    // struct tail
-                    self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
-                    out.push_str(&format!("{}}}", self.formatter.get_indentation()));
-                }
-            }
-            TypeInfo::TupleStruct(info) => {
-                // struct header
-                #[cfg(feature = "comments")]
-                if let Some(docs) = info.docs() {
-                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
-                }
-                out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
-                // struct items
-                for n in 0..info.field_len() {
-                    let field = info.field_at(n).unwrap();
-                    if n > 0 {
-                        if n % self.formatter.max_items_per_line == 0 {
-                            out.push_str(",\n");
-                        }
-                        else {
-                            out.push_str(", ");
-                        }
-                    }
-
-                    #[cfg(feature = "comments")]
-                    if let Some(docs) = field.docs() {
-                        out.push_str(&format!("/** {docs} */ "));
-                    }
-                    out.push_str( &self.get_field_name(field.type_id()));
-                }
-                // struct tail
-                out.push_str(&format!("]"));
-            }
-            TypeInfo::Enum(info) => {
-                // enum header
-                #[cfg(feature = "comments")]
-                if let Some(docs) = info.docs() {
-                    out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
-                }
-                out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), registration.short_name().to_pascal_case()));
+                out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
                 self.formatter.depth.fetch_add(1, Ordering::Relaxed);
 
-                for var in info.variant_names() {
-                    // variant items
-                    match info.variant(var) {
-                        Some(VariantInfo::Struct(info)) => {
-                            #[cfg(feature = "comments")]
-                            if let Some(docs) = info.docs() {
-                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
-                            }
-                            let compact = self.formatter.compact_enum.map(|n| info.field_len() <= n).unwrap_or(false);
-                            // struct variant head
-                            if compact {
-                                out.push_str(&format!("{}| {{ ", self.formatter.get_indentation()));
+                // struct items
+                for field in &ir.fields {
+                    #[cfg(feature = "comments")]
+                    if let Some(doc) = field.docs {
+                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                    }
+
+                    out.push_str(&format!("{}{}{}: {},\n",
+                                          self.formatter.get_indentation(),
+                                          field.ident,
+                                          if field.ty.optional { "?" } else { "" },
+                                          self.get_field_name(field.ty.id),
+                    ));
+                }
+
+                // struct tail
+                self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                out.push_str(&format!("{}}}", self.formatter.get_indentation()));
+            }
+            IrItem::TupleStruct(ir) => {
+                // struct header
+                #[cfg(feature = "comments")]
+                if let Some(doc) = ir.docs {
+                    out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                }
+                // tuples with exactly one field are colloquially considered "newtypes" and often treated as such
+                // `serde_json` appears to consider these as newtypes by default, so we treat them as such
+                // but this may be incorrect behavior for other serialization frameworks
+                if ir.fields.len() == 1 {
+                    let field = ir.fields.first().unwrap();
+                    #[cfg(feature = "comments")]
+                    if let Some(doc) = field.docs {
+                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                    }
+                    out.push_str(&format!("{}export type {} = {}",
+                                          self.formatter.get_indentation(),
+                                          ir.name().to_pascal_case(),
+                                          self.get_field_name(field.ty.id),
+                    ));
+                }
+                else {
+                    out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), ir.name().to_pascal_case()));
+                    // struct items
+                    for (n, field) in ir.fields.iter().enumerate() {
+                        if n > 0 {
+                            if n % self.formatter.max_items_per_line == 0 {
+                                out.push_str(",\n");
                             }
                             else {
-                                out.push_str(&format!("{}| {{\n", self.formatter.get_indentation()));
+                                out.push_str(", ");
+                            }
+                        }
+
+                        #[cfg(feature = "comments")]
+                        if let Some(doc) = field.docs {
+                            out.push_str(&format!("/** {doc} */ "));
+                        }
+                        out.push_str( &self.get_field_name(field.ty.id));
+                    }
+                    // struct tail
+                    out.push_str(&format!("]"));
+                }
+            }
+            IrItem::UnitStruct(ir) => {
+                #[cfg(feature = "comments")]
+                if let Some(doc) = ir.docs {
+                    out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                }
+                out.push_str(&format!("{}export type {} = null", self.formatter.get_indentation(), ir.ident.to_string().to_pascal_case()));
+            }
+            IrItem::Enum(ir) => {
+                // enum header
+                #[cfg(feature = "comments")]
+                if let Some(doc) = ir.docs {
+                    out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                }
+                out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
+                self.formatter.depth.fetch_add(1, Ordering::Relaxed);
+
+                for var in &ir.variants {
+                    match var {
+                        IrEnumVariant::Struct(ir) => {
+                            #[cfg(feature = "comments")]
+                            if let Some(doc) = ir.docs {
+                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                            }
+                            let compact = self.formatter.compact_enum.map(|n| ir.fields.len() <= n).unwrap_or(false);
+                            // struct variant head
+                            if compact {
+                                out.push_str(&format!("{}| {{ {}: {{ ", self.formatter.get_indentation(), var.name()));
+                            }
+                            else {
+                                out.push_str(&format!("{}| {{ {}: {{\n", self.formatter.get_indentation(), var.name()));
                             }
                             self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                            for n in 0..info.field_len() {
-                                let field = info.field_at(n).unwrap();
+                            for (n, field) in ir.fields.iter().enumerate() {
                                 if compact {
                                     if n > 0 {
                                         out.push_str(&format!(", "));
                                     }
                                     #[cfg(feature = "comments")]
-                                    if let Some(docs) = field.docs() {
-                                        out.push_str(&format!("/** {docs} */ "));
+                                    if let Some(doc) = field.docs {
+                                        out.push_str(&format!("/** {doc} */ "));
                                     }
-                                    out.push_str(&format!("\"{}\": {}", field.name(), self.get_field_name(field.type_id())));
+                                    out.push_str(&format!("{}{}: {}",
+                                                          field.name(),
+                                                          if field.ty.optional { "?" } else { "" },
+                                                          self.get_field_name(field.ty.id)
+                                    ));
                                 }
                                 else {
                                     #[cfg(feature = "comments")]
-                                    if let Some(docs) = field.docs() {
-                                        out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                                    if let Some(doc) = field.docs {
+                                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                                     }
-                                    out.push_str(&format!("{}\"{}\": {},\n", self.formatter.get_indentation(), field.name(), self.get_field_name(field.type_id())));
+                                    out.push_str(&format!("{}{}{}: {},\n",
+                                                          self.formatter.get_indentation(),
+                                                          field.name(),
+                                                          if field.ty.optional { "?" } else { "" },
+                                                          self.get_field_name(field.ty.id)
+                                    ));
                                 }
                             }
 
                             // struct variant tail
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                             if compact {
-                                out.push_str(&format!(" }}\n"));
+                                out.push_str(&format!(" }}}}\n"));
                             }
                             else {
-                                out.push_str(&format!("{}}}\n", self.formatter.get_indentation()));
+                                out.push_str(&format!("{}}} }}\n", self.formatter.get_indentation()));
                             }
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                         }
-                        Some(VariantInfo::Tuple(info)) => {
+                        IrEnumVariant::Tuple(ir) => {
                             #[cfg(feature = "comments")]
-                            if let Some(docs) = info.docs() {
-                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                            if let Some(doc) = ir.docs {
+                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            out.push_str(&format!("{}| [", self.formatter.get_indentation()));
-                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
-
-                            for n in 0..info.field_len() {
-                                let field = info.field_at(n).unwrap();
-                                if n > 0 {
-                                    out.push_str(&format!(", "));
-                                }
+                            if ir.fields.len() == 1 {
+                                let field = ir.fields.first().unwrap();
                                 #[cfg(feature = "comments")]
-                                if let Some(docs) = field.docs() {
-                                    out.push_str(&format!("/** {docs} */ "));
+                                if let Some(doc) = field.docs {
+                                    out.push_str(&format!("/** {doc} */ "));
                                 }
-                                out.push_str(&format!("{}", self.get_field_name(field.type_id())));
+                                out.push_str(&format!("{}| {{ {}: {} }}\n",
+                                                      self.formatter.get_indentation(),
+                                                      var.name(),
+                                                      self.get_field_name(field.ty.id),
+                                ));
                             }
+                            else {
+                                out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), var.name()));
+                                self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                            // struct variant tail
-                            self.formatter.depth.fetch_sub(2, Ordering::Relaxed);
-                            out.push_str(&format!("]\n"));
+                                for (n, field) in ir.fields.iter().enumerate() {
+                                    if n > 0 {
+                                        out.push_str(&format!(", "));
+                                    }
+                                    #[cfg(feature = "comments")]
+                                    if let Some(doc) = field.docs {
+                                        out.push_str(&format!("/** {doc} */ "));
+                                    }
+                                    out.push_str(&format!("{}", self.get_field_name(field.ty.id)));
+                                }
+
+                                // struct variant tail
+                                self.formatter.depth.fetch_sub(2, Ordering::Relaxed);
+                                out.push_str(&format!("] }}\n"));
+                            }
                         }
-                        Some(VariantInfo::Unit(info)) => {
+                        IrEnumVariant::Unit(ir) => {
                             #[cfg(feature = "comments")]
-                            if let Some(docs) = info.docs() {
-                                out.push_str(&format!("{}/** {docs} */\n", self.formatter.get_indentation()));
+                            if let Some(doc) = ir.docs {
+                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), info.name()));
+                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), ir.name()));
                         }
-                        None => {}
+                        IrEnumVariant::Discriminant(ir) => {
+                            #[cfg(feature = "comments")]
+                            if let Some(doc) = ir.docs {
+                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                            }
+                            out.push_str(&format!("{}| {}\n", self.formatter.get_indentation(), ir.expr.to_token_stream()));
+                        }
                     }
-
                 }
 
                 // enum tail
                 self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                 out.push_str(&format!(";"));
             }
-            _ => panic!("attempted to write unsupported type"),
         }
         out
     }
@@ -301,7 +350,7 @@ impl<'t> TsExporter<'t> {
             self.type_registry
                 .get(target_id)
                 .unwrap_or_else(|| self.exporter.type_registry.get(target_id).expect("type not registered"))
-                .short_name()
+                .ident()
                 .to_string()
         }
     }

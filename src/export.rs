@@ -10,8 +10,8 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Error as IoError, Write};
 use std::path::{Path, PathBuf};
-use bevy_reflect::TypeRegistration;
 use path_macro::path;
+use burrtype_internal::ir::IrItem;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ExportError {
@@ -33,7 +33,7 @@ pub struct Burrxporter {
     pub mods: Vec<BurrMod>,
     pub root: Option<PathBuf>,
     pub default_mod: Option<String>,
-    pub type_registry: HashMap<TypeId, TypeRegistration>,
+    pub type_registry: HashMap<TypeId, IrItem>,
 }
 
 impl Burrxporter {

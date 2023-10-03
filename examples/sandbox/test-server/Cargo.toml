@@ -1,13 +1,13 @@
 [package]
-name = "sandbox"
-version = "0.2.0"
+name = "test-server"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burrtype = { path = "../..", features = ["typescript"] }
+sandbox = { path = ".." }
 anyhow = "1.0"
 axum = "0.6"
 tokio = { version = "1.0", features = ["full"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-rust_decimal = { version = "1.32", features = ["serde-float", "serde-arbitrary-precision"]}
+rust_decimal = "1.32"

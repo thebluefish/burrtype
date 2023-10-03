@@ -1,17 +1,23 @@
 [package]
 name = "burrtype_derive"
 description = "Macro helpers for burrtype"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/thebluefish/burrtype"
+
+[features]
+default = []
+docs = ["burrtype_internal/docs"]
+auto_register = []
 
 [lib]
 name = "burrtype_derive"
 proc-macro = true
 
 [dependencies]
-syn = "2.0"
+burrtype_internal = { path = "../burrtype_internal", version = "0.2" }
+syn = { version = "2.0", features = ["parsing", "printing"]}
 quote = "1.0"
 proc-macro2 = "1.0"
 Inflector = "0.11"

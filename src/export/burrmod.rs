@@ -1,13 +1,13 @@
-use bevy_reflect::*;
 use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
-use crate::type_registration::TypeRegistrationExt;
+use burrtype_internal::ir::{IrEnumVariant, IrItem};
+use burrtype_internal::prelude::IrExt;
 
 /// A collection of items to export
 #[derive(Clone, Debug)]
 pub struct BurrMod {
     pub name: String,
-    pub types: HashMap<TypeId, TypeRegistration>,
+    pub types: HashMap<TypeId, IrItem>,
     pub children: Vec<BurrMod>,
 }
 
@@ -24,8 +24,21 @@ impl BurrMod {
     pub fn pull_fields(&self) -> HashSet<TypeId> {
         let mut fields = HashSet::new();
         // iterate fields for each type and add field's TypeId to set
-        for (_, tr) in &self.types {
-            fields.extend(tr.get_fields());
+        for (_, item) in &self.types {
+            match item {
+                IrItem::UnitStruct(_) => {}
+                IrItem::NamedStruct(ir) => fields.extend(ir.fields.iter().map(|f| f.ty.id)),
+                IrItem::TupleStruct(ir) => fields.extend(ir.fields.iter().map(|ty| ty.ty.id)),
+                IrItem::Enum(ir) => {
+                    for var in &ir.variants {
+                        match var {
+                            IrEnumVariant::Struct(ir) => fields.extend(ir.fields.iter().map(|f| f.ty.id)),
+                            IrEnumVariant::Tuple(ir) => fields.extend(ir.fields.iter().map(|f| f.ty.id)),
+                            _ => {}
+                        }
+                    }
+                }
+            }
         }
         // then repeat this recursively
         for child in &self.children {
@@ -39,9 +52,9 @@ impl BurrMod {
         self
     }
 
-    pub fn with_type<T: GetTypeRegistration>(mut self) -> Self {
-        let registration = T::get_type_registration();
-        self.types.insert(registration.type_id(), registration);
+    pub fn with_type<T: IrExt>(mut self) -> Self {
+        let item = T::get_ir();
+        self.types.insert(item.type_id(), item);
         self
     }
 
