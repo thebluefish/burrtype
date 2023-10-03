@@ -1,5 +1,8 @@
 export type Bar = Foo
 
+/** A unit struct has no shape nor fields */
+export type UnitStruct = null
+
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
@@ -19,14 +22,10 @@ export type Enum =
     } }
 ;
 
-/** A unit struct has no shape nor fields */
-export type UnitStruct = null
-
 export interface NamedStruct {
   /** Type alias allows us to treat one type like another
 Here we treat a newtype like its known inner type */
   foo: number,
-  /** Here we treat a third-party type by its known serde representation */
   bar: number,
   /** We need to support optional fields, too */
   opt?: Foo,
