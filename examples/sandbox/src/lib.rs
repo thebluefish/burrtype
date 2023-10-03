@@ -35,8 +35,6 @@ pub mod inner {
         /// Here we treat a newtype like its known inner type
         #[burr(type = u64)]
         pub foo: PhantomType,
-        /// Here we treat a third-party type by its known serde representation
-        #[burr(type = f64)]
         pub bar: rust_decimal::Decimal,
         /// We need to support optional fields, too
         pub opt: Option<super::Foo>,

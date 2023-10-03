@@ -1,4 +1,4 @@
-import { Foo, NamedStruct, TupleStruct, DeepTupleStruct } from '../../common'
+import { Foo, TupleStruct, DeepTupleStruct, NamedStruct } from '../../common'
 
 export type Bar = Foo
 
