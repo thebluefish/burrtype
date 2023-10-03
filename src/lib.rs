@@ -1,12 +1,11 @@
 pub mod export;
 pub mod targets;
 pub mod prelude;
-pub mod type_registration;
 
-pub use prelude::burr;
+pub use prelude::{Burr, burr};
 // these re-exports are necessary for the proc macro to work without requiring the user to include them as dependencies
 #[doc(hidden)]
-pub use bevy_reflect::{Reflect, GetTypeRegistration, TypeRegistration};
+pub use burrtype_internal::ir;
 #[doc(hidden)]
 pub use syn;
 #[doc(hidden)]
@@ -15,4 +14,4 @@ pub use quote;
 pub use linkme;
 
 #[linkme::distributed_slice]
-pub static TYPES: [fn() -> TypeRegistration] = [..];
+pub static TYPES: [fn() -> ir::IrItem] = [..];

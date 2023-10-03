@@ -1,10 +1,10 @@
 [package]
-name = "sandbox"
+name = "test-server"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burrtype = { path = "../..", features = ["typescript"] }
+sandbox = { path = ".." }
 anyhow = "1.0"
 axum = "0.6"
 tokio = { version = "1.0", features = ["full"] }
