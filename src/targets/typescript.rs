@@ -123,7 +123,7 @@ impl<'f> Target for TypeScript<'f> {
             let mut exporting = HashSet::<TypeId>::new();
             let mut importing = HashSet::<TypeId>::new();
             for om in &mods {
-                exporting.extend(om.types.keys().map(Clone::clone));
+                exporting.extend(om.pull_exports());
                 importing.extend(om.pull_fields());
             }
 
@@ -135,6 +135,17 @@ impl<'f> Target for TypeScript<'f> {
                 }
             }
 
+            // Ensure dependencies of dependencies are also included by repeatedly checking until no more have been included
+            let mut dirty = true;
+            while dirty {
+                dirty = false;
+                for id in bm.pull_fields().difference(&bm.pull_exports()) {
+                    if let Some(tr) = exporter.type_registry.get(id) {
+                        bm.types.insert(id.clone(), tr.clone());
+                        dirty = true;
+                    }
+                }
+            }
             mods.push(bm);
         }
 
