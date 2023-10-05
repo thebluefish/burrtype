@@ -2,7 +2,6 @@ use super::{IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use std::collections::HashSet;
 use proc_macro2::Ident;
-use syn::Expr;
 
 #[derive(Clone, Debug)]
 pub struct IrEnum {

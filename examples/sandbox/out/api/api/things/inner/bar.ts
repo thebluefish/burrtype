@@ -1,9 +1,8 @@
-import { NamedStruct, TupleStruct } from '../../types'
 import { Foo, Things } from '../../common'
 import { DeepTupleStruct } from '../../deep/types'
+import { TupleStruct, NamedStruct } from '../../types'
 
-/** A unit struct has no shape nor fields */
-export type UnitStruct = null
+export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
@@ -24,4 +23,5 @@ export type Enum =
     } }
 ;
 
-export type Bar = Foo
+/** A unit struct has no shape nor fields */
+export type UnitStruct = null

@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
-use quote::ToTokens;
 use burrtype_internal::ir::{IrEnumVariant, IrItem};
 
 /// An export-friendly version of the Typescript export builder

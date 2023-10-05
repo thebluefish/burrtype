@@ -228,15 +228,14 @@ pub fn enum_ir(
     let variant_frags = data.variants.into_iter().map(|var| {
         let Variant { attrs, ident, fields, .. } = var;
 
-        if let Some((_, expr)) = var.discriminant {
+        if var.discriminant.is_some() {
             panic!("Enums with discriminants are unsupported");
         }
-        else {
-            match fields {
-                Fields::Named(inner) => enum_struct_variant_ir(attrs, ident, inner),
-                Fields::Unnamed(inner) => enum_tuple_variant_ir(attrs, ident, inner),
-                Fields::Unit => enum_unit_variant_ir(attrs, ident),
-            }
+
+        match fields {
+            Fields::Named(inner) => enum_struct_variant_ir(attrs, ident, inner),
+            Fields::Unnamed(inner) => enum_tuple_variant_ir(attrs, ident, inner),
+            Fields::Unit => enum_unit_variant_ir(attrs, ident),
         }
     })
     .collect::<Vec<_>>();
@@ -259,22 +258,6 @@ pub fn enum_ir(
                 }.into()
             }
         }
-    }
-}
-
-fn enum_discriminant_variant_ir(
-    attrs: Vec<Attribute>,
-    name: Ident,
-    expr: Expr,
-) -> TokenStream {
-    let ir_docs = docs(&attrs);
-
-    quote! {
-        variants.push(burrtype::ir::IrEnumDiscriminantVariant {
-            ident: burrtype::syn::parse_quote!(#name),
-            expr: burrtype::syn::parse_quote!(#expr),
-            #ir_docs
-        }.into());
     }
 }
 

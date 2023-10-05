@@ -1,7 +1,6 @@
 use super::{IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use proc_macro2::Ident;
-use syn::Path;
 
 /// A struct with the format:
 /// ```
