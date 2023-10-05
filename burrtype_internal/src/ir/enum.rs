@@ -1,4 +1,4 @@
-use super::{IrNamedField, IrUnnamedField};
+use super::{CaseConvention, IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use std::collections::HashSet;
 use proc_macro2::Ident;
@@ -11,6 +11,8 @@ pub struct IrEnum {
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
     pub r#mod: Option<&'static str>,
+    #[cfg(feature = "serde_compat")]
+    pub case: CaseConvention,
 }
 
 impl IrEnum {
@@ -66,6 +68,8 @@ pub struct IrEnumStructVariant {
     pub fields: Vec<IrNamedField>,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    #[cfg(feature = "serde_compat")]
+    pub case: CaseConvention,
 }
 
 impl IrEnumStructVariant {

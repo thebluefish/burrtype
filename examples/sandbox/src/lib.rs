@@ -33,6 +33,7 @@ pub mod inner {
     #[burr(mod = "types")]
     #[serde(rename = "RenamedStruct")]
     // #[serde(rename(serialize = "SameNameAlsoWorks", deserialize = "SameNameAlsoWorks"))]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub struct NamedStruct {
         /// Type alias allows us to treat one type like another
         /// Here we treat a newtype like its known inner type
@@ -41,6 +42,7 @@ pub mod inner {
         /// Rust reserved keywords should resolve properly for other languages
         pub r#type: rust_decimal::Decimal,
         /// We need to support optional fields, too
+        #[serde(rename = "optional")]
         pub opt: Option<super::Foo>,
     }
 
@@ -85,6 +87,7 @@ pub mod inner {
             /// It doesn't matter where types are, we can reference them
             one: bar::DeepTupleStruct,
             two: Option<NamedStruct>,
+            #[serde(rename = "five")]
             three: TupleStruct,
             four: super::Foo,
         },

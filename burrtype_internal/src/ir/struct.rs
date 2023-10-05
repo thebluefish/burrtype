@@ -1,4 +1,4 @@
-use super::{IrNamedField, IrUnnamedField};
+use super::{CaseConvention, IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use proc_macro2::Ident;
 
@@ -17,6 +17,8 @@ pub struct IrNamedStruct {
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
     pub r#mod: Option<&'static str>,
+    #[cfg(feature = "serde_compat")]
+    pub case: CaseConvention,
 }
 
 impl IrNamedStruct {

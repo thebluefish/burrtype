@@ -7,9 +7,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/thebluefish/burrtype"
 
 [features]
-default = []
+default = ["serde_compat"]
 docs = []
+serde_compat = []
 
 [dependencies]
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+Inflector = "0.11"
