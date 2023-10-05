@@ -20,6 +20,17 @@ impl BurrMod {
         }
     }
 
+    /// Gets a flat set of all types being exported by a module
+    pub fn pull_exports(&self) -> HashSet<TypeId> {
+        let mut types = HashSet::new();
+        types.extend(self.types.keys());
+        // repeat this recursively
+        for child in &self.children {
+            types.extend(child.pull_exports());
+        }
+        types
+    }
+
     /// Gets a flat set of all types being used by a module
     pub fn pull_fields(&self) -> HashSet<TypeId> {
         let mut fields = HashSet::new();

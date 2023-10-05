@@ -1,4 +1,7 @@
-import { Foo, TupleStruct, DeepTupleStruct, NamedStruct } from '../../common'
+import { NamedStruct, DeepTupleStruct, TupleStruct, Foo } from '../../common'
+
+/** A unit struct has no shape nor fields */
+export type UnitStruct = null
 
 export type Bar = Foo
 
@@ -20,6 +23,3 @@ export type Enum =
       four: Foo,
     } }
 ;
-
-/** A unit struct has no shape nor fields */
-export type UnitStruct = null

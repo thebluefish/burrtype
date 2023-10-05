@@ -1,7 +1,7 @@
-export type Bar = Foo
-
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
+
+export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
@@ -38,9 +38,9 @@ export interface Foo {
   two: string,
 }
 
-/** A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]
-
 /** strike the earth! */
 /** Why do we care about such things */
 export type DeepTupleStruct = number
+
+/** A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]
