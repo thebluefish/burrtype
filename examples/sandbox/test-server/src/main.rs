@@ -61,7 +61,7 @@ async fn get_deep_tuple_struct() -> Json<DeepTupleStruct> {
 async fn get_named_struct() -> Json<NamedStruct> {
     let data = NamedStruct {
         foo: PhantomType(42),
-        bar: Decimal::from_str("1.32").unwrap(),
+        r#type: Decimal::from_str("1.32").unwrap(),
         opt: Some(Foo {
             one: 1,
             two: "2".to_string(),
@@ -96,7 +96,7 @@ async fn get_enum_struct() -> Json<Enum> {
 }
 
 async fn get_enum_tuple() -> Json<Enum> {
-    let data = Enum::Tuple(64, 128);
+    let data = Enum::Tuple(Things::Two, Things::One);
 
     Json(data)
 }

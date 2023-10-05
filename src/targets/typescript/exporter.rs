@@ -319,13 +319,6 @@ impl<'t> TsExporter<'t> {
                             }
                             out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name())));
                         }
-                        IrEnumVariant::Discriminant(ir) => {
-                            #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
-                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
-                            }
-                            out.push_str(&format!("{}| {}\n", self.formatter.get_indentation(), ir.expr.to_token_stream()));
-                        }
                     }
                 }
 

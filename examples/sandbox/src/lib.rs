@@ -55,15 +55,8 @@ pub mod inner {
     /// The simplest enum of all unit types
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
     pub enum Things {
-        ThingOne,
-        ThingTwo,
-    }
-
-    /// Discriminant enum variants
-    #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
-    pub enum NumberedThings {
-        One = 1,
-        Two = 2,
+        One,
+        Two,
     }
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
@@ -81,7 +74,7 @@ pub mod inner {
         Tuple(
             /// Give some meaning to these nameless types
             Things,
-            NumberedThings,
+            Things,
         ),
         /// A unit variant has no shape nor fields
         Unit,

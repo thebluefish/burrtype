@@ -1,6 +1,8 @@
 import {Bar, Enum, UnitStruct} from "./api/things"
-import {DeepTupleStruct, Foo, NamedStruct, TupleStruct} from "./api/common"
 import axios, {AxiosError} from "axios"
+import {DeepTupleStruct} from "./api/deep";
+import {Foo} from "./api/common";
+import {NamedStruct, TupleStruct} from "./api/types";
 
 let client = axios.create({
     baseURL: 'http://127.0.0.1:3000',
@@ -65,7 +67,7 @@ async function named_struct() {
 
     let data: NamedStruct = {
         foo: 4,
-        bar: 420.69,
+        type: 420.69,
     }
 
     await client.post('/named_struct', data)
@@ -111,7 +113,7 @@ async function enum_tuple() {
     console.log("enum_tuple: ", result.data)
 
     let data: Enum = {
-        Tuple: [16, 32],
+        Tuple: ["One", "Two"],
     }
 
     await client.post('/enum_tuple', data)

@@ -1,15 +1,13 @@
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
 
-export type Bar = Foo
-
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
   | { Struct: { /** An inline comment */ foo: Foo, bar: string }}
   | { TinyTuple: string }
   /** A tuple variant is defined by parenthesis and only types */
-  | { Tuple: [/** Give some meaning to these nameless types */ Things, NumberedThings] }
+  | { Tuple: [/** Give some meaning to these nameless types */ Things, Things] }
   /** A unit variant has no shape nor fields */
   | "Unit"
   /** Bigger structs can expand to a better format */
@@ -22,8 +20,7 @@ export type Enum =
     } }
 ;
 
-/** A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]
+export type Bar = Foo
 
 export interface NamedStruct {
   /** Type alias allows us to treat one type like another
@@ -34,6 +31,9 @@ Here we treat a newtype like its known inner type */
   /** We need to support optional fields, too */
   opt?: Foo,
 }
+
+/** A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]
 
 /** We can assign a module at the type level */
 /** Why do we care about such things */
@@ -48,12 +48,6 @@ export interface Foo {
 
 /** The simplest enum of all unit types */
 export type Things =
-  | "ThingOne"
-  | "ThingTwo"
-;
-
-/** Discriminant enum variants */
-export type NumberedThings =
-  | 1
-  | 2
+  | "One"
+  | "Two"
 ;

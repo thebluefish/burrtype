@@ -229,7 +229,7 @@ pub fn enum_ir(
         let Variant { attrs, ident, fields, .. } = var;
 
         if let Some((_, expr)) = var.discriminant {
-            enum_discriminant_variant_ir(attrs, ident, expr)
+            panic!("Enums with discriminants are unsupported");
         }
         else {
             match fields {

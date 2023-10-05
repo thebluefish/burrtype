@@ -7,12 +7,6 @@ export interface Foo {
 
 /** The simplest enum of all unit types */
 export type Things =
-  | "ThingOne"
-  | "ThingTwo"
-;
-
-/** Discriminant enum variants */
-export type NumberedThings =
-  | 1
-  | 2
+  | "One"
+  | "Two"
 ;
