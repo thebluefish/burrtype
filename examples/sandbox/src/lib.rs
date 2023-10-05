@@ -16,7 +16,8 @@ pub struct Bar(pub Foo);
 pub mod inner {
     pub mod bar {
         #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
-        /// strike the earth!
+        #[burr(mod = "deep/types")]
+        /// We can assign a module at the type level
         pub struct DeepTupleStruct(
             /// Why do we care about such things
             pub u64,
@@ -29,26 +30,44 @@ pub mod inner {
     pub struct PhantomType(pub u64);
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    #[burr(mod = "types")]
     pub struct NamedStruct {
-        // todo: should this support some sort of type mocking?
         /// Type alias allows us to treat one type like another
         /// Here we treat a newtype like its known inner type
         #[burr(type = u64)]
         pub foo: PhantomType,
-        pub bar: rust_decimal::Decimal,
+        /// Rust reserved keywords should resolve properly for other languages
+        pub r#type: rust_decimal::Decimal,
         /// We need to support optional fields, too
         pub opt: Option<super::Foo>,
     }
 
     /// A tuple struct is defined by parenthesis and only types
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    #[burr(mod = "types")]
     pub struct TupleStruct(pub u32, pub super::Foo);
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    #[burr(mod = "types")]
     /// A unit struct has no shape nor fields
     pub struct UnitStruct;
 
+    /// The simplest enum of all unit types
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    pub enum Things {
+        ThingOne,
+        ThingTwo,
+    }
+
+    /// Discriminant enum variants
+    #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    pub enum NumberedThings {
+        One = 1,
+        Two = 2,
+    }
+
+    #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    #[burr(mod = "types")]
     /// An enum's variants correlate with struct variants
     pub enum Enum {
         /// A struct variant is defined by braces and fields with named
@@ -61,8 +80,8 @@ pub mod inner {
         /// A tuple variant is defined by parenthesis and only types
         Tuple(
             /// Give some meaning to these nameless types
-            u32,
-            u64,
+            Things,
+            NumberedThings,
         ),
         /// A unit variant has no shape nor fields
         Unit,

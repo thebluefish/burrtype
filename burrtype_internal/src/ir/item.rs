@@ -26,6 +26,15 @@ impl IrItem {
         self.ident().to_string()
     }
 
+    pub fn mod_override(&self) -> Option<&'static str> {
+        match self {
+            IrItem::NamedStruct(inner) => inner.r#mod,
+            IrItem::TupleStruct(inner) => inner.r#mod,
+            IrItem::UnitStruct(inner) => inner.r#mod,
+            IrItem::Enum(inner) => inner.r#mod,
+        }
+    }
+
     pub fn type_id(&self) -> TypeId {
         match self {
             IrItem::NamedStruct(inner) => inner.id,

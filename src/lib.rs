@@ -2,7 +2,7 @@ pub mod export;
 pub mod targets;
 pub mod prelude;
 
-pub use prelude::{Burr, burr};
+pub use prelude::Burr;
 // these re-exports are necessary for the proc macro to work without requiring the user to include them as dependencies
 #[doc(hidden)]
 pub use burrtype_internal::ir;

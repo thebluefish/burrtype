@@ -11,6 +11,7 @@ pub struct IrEnum {
     pub variants: Vec<IrEnumVariant>,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    pub r#mod: Option<&'static str>,
 }
 
 impl IrEnum {

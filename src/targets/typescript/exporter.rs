@@ -2,6 +2,7 @@ use super::{TsFile, TsFormatter};
 use crate::export::Burrxporter;
 use inflector::Inflector;
 use std::any::TypeId;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::PathBuf;
@@ -94,7 +95,7 @@ impl<'t> TsExporter<'t> {
                         out.push_str(", ");
                     }
                     let item = self.type_registry.get(ty).expect("type should be known by now");
-                    out.push_str(&format!("{}", item.ident()));
+                    out.push_str(&strip_rust_prefix(format!("{}", item.ident())));
                 }
                 // write import tail
                 out.push_str(&format!(" }} from '{}'\n", full_path.to_slash_lossy()));
@@ -136,7 +137,7 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
-                out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
+                out.push_str(&format!("{}export interface {} {{\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name()).to_pascal_case()));
                 self.formatter.depth.fetch_add(1, Ordering::Relaxed);
 
                 // struct items
@@ -148,7 +149,7 @@ impl<'t> TsExporter<'t> {
 
                     out.push_str(&format!("{}{}{}: {},\n",
                                           self.formatter.get_indentation(),
-                                          field.ident,
+                                          strip_rust_prefix(field.ident.to_string()),
                                           if field.ty.optional { "?" } else { "" },
                                           self.get_field_name(field.ty.id),
                     ));
@@ -175,12 +176,12 @@ impl<'t> TsExporter<'t> {
                     }
                     out.push_str(&format!("{}export type {} = {}",
                                           self.formatter.get_indentation(),
-                                          ir.name().to_pascal_case(),
+                                          strip_rust_prefix(ir.name()).to_pascal_case(),
                                           self.get_field_name(field.ty.id),
                     ));
                 }
                 else {
-                    out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), ir.name().to_pascal_case()));
+                    out.push_str(&format!("{}export type {} = [", self.formatter.get_indentation(), strip_rust_prefix(ir.name()).to_pascal_case()));
                     // struct items
                     for (n, field) in ir.fields.iter().enumerate() {
                         if n > 0 {
@@ -207,7 +208,7 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
-                out.push_str(&format!("{}export type {} = null", self.formatter.get_indentation(), ir.ident.to_string().to_pascal_case()));
+                out.push_str(&format!("{}export type {} = null", self.formatter.get_indentation(), strip_rust_prefix(ir.ident.to_string()).to_pascal_case()));
             }
             IrItem::Enum(ir) => {
                 // enum header
@@ -215,7 +216,7 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
-                out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), ir.name().to_pascal_case()));
+                out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name()).to_pascal_case()));
                 self.formatter.depth.fetch_add(1, Ordering::Relaxed);
 
                 for var in &ir.variants {
@@ -228,10 +229,10 @@ impl<'t> TsExporter<'t> {
                             let compact = self.formatter.compact_enum.map(|n| ir.fields.len() <= n).unwrap_or(false);
                             // struct variant head
                             if compact {
-                                out.push_str(&format!("{}| {{ {}: {{ ", self.formatter.get_indentation(), var.name()));
+                                out.push_str(&format!("{}| {{ {}: {{ ", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
                             }
                             else {
-                                out.push_str(&format!("{}| {{ {}: {{\n", self.formatter.get_indentation(), var.name()));
+                                out.push_str(&format!("{}| {{ {}: {{\n", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
                             }
                             self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
@@ -245,7 +246,7 @@ impl<'t> TsExporter<'t> {
                                         out.push_str(&format!("/** {doc} */ "));
                                     }
                                     out.push_str(&format!("{}{}: {}",
-                                                          field.name(),
+                                                          strip_rust_prefix(field.name()),
                                                           if field.ty.optional { "?" } else { "" },
                                                           self.get_field_name(field.ty.id)
                                     ));
@@ -257,7 +258,7 @@ impl<'t> TsExporter<'t> {
                                     }
                                     out.push_str(&format!("{}{}{}: {},\n",
                                                           self.formatter.get_indentation(),
-                                                          field.name(),
+                                                          strip_rust_prefix(field.name()),
                                                           if field.ty.optional { "?" } else { "" },
                                                           self.get_field_name(field.ty.id)
                                     ));
@@ -287,12 +288,12 @@ impl<'t> TsExporter<'t> {
                                 }
                                 out.push_str(&format!("{}| {{ {}: {} }}\n",
                                                       self.formatter.get_indentation(),
-                                                      var.name(),
+                                                      strip_rust_prefix(var.name()),
                                                       self.get_field_name(field.ty.id),
                                 ));
                             }
                             else {
-                                out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), var.name()));
+                                out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
                                 self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
                                 for (n, field) in ir.fields.iter().enumerate() {
@@ -316,7 +317,7 @@ impl<'t> TsExporter<'t> {
                             if let Some(doc) = ir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), ir.name()));
+                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name())));
                         }
                         IrEnumVariant::Discriminant(ir) => {
                             #[cfg(feature = "comments")]
@@ -353,5 +354,13 @@ impl<'t> TsExporter<'t> {
                 .ident()
                 .to_string()
         }
+    }
+}
+
+fn strip_rust_prefix<'s, S: Into<Cow<'s, str>>>(name: S) -> String {
+    let name = name.into();
+    match name.strip_prefix("r#") {
+        None => name.into(),
+        Some(name) => name.into()
     }
 }
