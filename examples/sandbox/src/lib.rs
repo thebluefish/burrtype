@@ -31,6 +31,8 @@ pub mod inner {
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
     #[burr(mod = "types")]
+    #[serde(rename = "RenamedStruct")]
+    // #[serde(rename(serialize = "SameNameAlsoWorks", deserialize = "SameNameAlsoWorks"))]
     pub struct NamedStruct {
         /// Type alias allows us to treat one type like another
         /// Here we treat a newtype like its known inner type

@@ -3,6 +3,8 @@
 
 Exports your types to other languages, currently supporting TypeScript.
 
+This crate primarily targets compatibility with the `serde` framework and its representations. Compatibility with `#[serde]` derive macro attributes are offered behind the default `serde_compat` feature.
+
 ## Install
 
 Add to your `Cargo.toml`

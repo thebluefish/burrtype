@@ -1,6 +1,6 @@
+import { RenamedStruct, TupleStruct } from '../../types'
 import { Foo, Things } from '../../common'
 import { DeepTupleStruct } from '../../deep/types'
-import { TupleStruct, NamedStruct } from '../../types'
 
 export type Bar = Foo
 
@@ -17,7 +17,7 @@ export type Enum =
   | { BigStruct: {
       /** It doesn't matter where types are, we can reference them */
       one: DeepTupleStruct,
-      two?: NamedStruct,
+      two?: RenamedStruct,
       three: TupleStruct,
       four: Foo,
     } }

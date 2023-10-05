@@ -16,10 +16,11 @@ members = [
 ]
 
 [features]
-default = ["comments", "auto_register"]
-typescript = []
-auto_register = ["burrtype_derive/auto_register"]
+default = ["comments", "auto_register", "serde_compat"]
 comments = ["burrtype_derive/docs", "burrtype_internal/docs"]
+auto_register = ["burrtype_derive/auto_register"]
+serde_compat = ["burrtype_derive/serde_compat"]
+typescript = []
 
 [dependencies]
 burrtype_derive = { path = "burrtype_derive", version = "0.3" }

@@ -7,9 +7,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/thebluefish/burrtype"
 
 [features]
-default = []
+default = ["serde_compat"]
 docs = ["burrtype_internal/docs"]
 auto_register = []
+serde_compat = []
 
 [lib]
 name = "burrtype_derive"

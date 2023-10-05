@@ -13,7 +13,7 @@ export type Enum =
   | { BigStruct: {
       /** It doesn't matter where types are, we can reference them */
       one: DeepTupleStruct,
-      two?: NamedStruct,
+      two?: RenamedStruct,
       three: TupleStruct,
       four: Foo,
     } }
@@ -22,6 +22,12 @@ export type Enum =
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
 
+/** The simplest enum of all unit types */
+export type Things =
+  | "One"
+  | "Two"
+;
+
 /** A named struct is defined by braces and fields with named */
 export interface Foo {
   /** comments work at all levels */
@@ -29,13 +35,10 @@ export interface Foo {
   two: string,
 }
 
-/** The simplest enum of all unit types */
-export type Things =
-  | "One"
-  | "Two"
-;
+/** A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]
 
-export interface NamedStruct {
+export interface RenamedStruct {
   /** Type alias allows us to treat one type like another
 Here we treat a newtype like its known inner type */
   foo: number,
@@ -44,9 +47,6 @@ Here we treat a newtype like its known inner type */
   /** We need to support optional fields, too */
   opt?: Foo,
 }
-
-/** A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]
 
 /** We can assign a module at the type level */
 /** Why do we care about such things */
