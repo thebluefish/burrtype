@@ -98,6 +98,8 @@ pub fn option(ty: &Type) -> (&Type, bool) {
     (ty, false)
 }
 
+
+
 /// Named fields can have the following attributes:
 /// #[burr(flatten)]
 /// #[burr(ignore)]

@@ -16,6 +16,7 @@ pub struct IrNamedStruct {
     pub fields: Vec<IrNamedField>,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    pub r#mod: Option<&'static str>,
 }
 
 impl IrNamedStruct {
@@ -35,6 +36,7 @@ pub struct IrTupleStruct {
     pub fields: Vec<IrUnnamedField>,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    pub r#mod: Option<&'static str>,
 }
 
 impl IrTupleStruct {
@@ -53,6 +55,7 @@ pub struct IrUnitStruct {
     pub id: TypeId,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    pub r#mod: Option<&'static str>,
 }
 
 impl IrUnitStruct {

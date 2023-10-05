@@ -7,7 +7,7 @@ use exporter::*;
 use crate::export::{BurrMod, Burrxporter, Target};
 use std::any::{TypeId};
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use path_macro::path;
@@ -112,42 +112,12 @@ impl<'f> Target for TypeScript<'f> {
     fn export(self, to: &Path, exporter: &Burrxporter) {
         // build our export-friendly type and export it
         let TypeScript { formatter, mod_file_map, type_map, type_overrides } = self;
-        let mut mods = exporter.mods.clone();
+        let mods = exporter.mods.clone();
 
         // collect types that are being imported, but are not explicitly exported by the user
         // then write them to the "default" module
         // todo: consider moving this a target-agnostic method on Burrxporter
-        if let Some(target) = &exporter.default_mod {
-            let mut bm = BurrMod::new(target);
 
-            let mut exporting = HashSet::<TypeId>::new();
-            let mut importing = HashSet::<TypeId>::new();
-            for om in &mods {
-                exporting.extend(om.pull_exports());
-                importing.extend(om.pull_fields());
-            }
-
-            for id in importing.difference(&exporting) {
-                // todo: consider handling the None case
-                // this usually means we have encountered a builtin such as usize or String, but might not always
-                if let Some(tr) = exporter.type_registry.get(id) {
-                    bm.types.insert(id.clone(), tr.clone());
-                }
-            }
-
-            // Ensure dependencies of dependencies are also included by repeatedly checking until no more have been included
-            let mut dirty = true;
-            while dirty {
-                dirty = false;
-                for id in bm.pull_fields().difference(&bm.pull_exports()) {
-                    if let Some(tr) = exporter.type_registry.get(id) {
-                        bm.types.insert(id.clone(), tr.clone());
-                        dirty = true;
-                    }
-                }
-            }
-            mods.push(bm);
-        }
 
         // builds the set of files to write
         let mut files = HashMap::new();

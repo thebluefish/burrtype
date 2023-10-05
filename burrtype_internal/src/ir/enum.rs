@@ -2,7 +2,6 @@ use super::{IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use std::collections::HashSet;
 use proc_macro2::Ident;
-use syn::Expr;
 
 #[derive(Clone, Debug)]
 pub struct IrEnum {
@@ -11,6 +10,7 @@ pub struct IrEnum {
     pub variants: Vec<IrEnumVariant>,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
+    pub r#mod: Option<&'static str>,
 }
 
 impl IrEnum {
@@ -24,7 +24,6 @@ pub enum IrEnumVariant {
     Struct(IrEnumStructVariant),
     Tuple(IrEnumTupleVariant),
     Unit(IrEnumUnitVariant),
-    Discriminant(IrEnumDiscriminantVariant),
 }
 
 impl IrEnumVariant {
@@ -46,7 +45,6 @@ impl IrEnumVariant {
             IrEnumVariant::Struct(inner) => &inner.ident,
             IrEnumVariant::Tuple(inner) => &inner.ident,
             IrEnumVariant::Unit(inner) => &inner.ident,
-            IrEnumVariant::Discriminant(inner) => &inner.ident,
         }
     }
 
@@ -126,29 +124,5 @@ impl IrEnumUnitVariant {
 impl From<IrEnumUnitVariant> for IrEnumVariant {
     fn from(value: IrEnumUnitVariant) -> Self {
         IrEnumVariant::Unit(value)
-    }
-}
-
-/// A variant with the format:
-/// ```
-/// T = <expression>,
-/// ```
-#[derive(Clone, Debug)]
-pub struct IrEnumDiscriminantVariant {
-    pub ident: Ident,
-    pub expr: Expr,
-    #[cfg(feature = "docs")]
-    pub docs: Option<&'static str>,
-}
-
-impl IrEnumDiscriminantVariant {
-    pub fn name(&self) -> String {
-        self.ident.to_string()
-    }
-}
-
-impl From<IrEnumDiscriminantVariant> for IrEnumVariant {
-    fn from(value: IrEnumDiscriminantVariant) -> Self {
-        IrEnumVariant::Discriminant(value)
     }
 }

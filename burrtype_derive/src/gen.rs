@@ -2,8 +2,9 @@ mod parse;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DataEnum, Expr, Fields, FieldsNamed, FieldsUnnamed, Lit, Meta, Variant};
+use syn::{Attribute, DataEnum, Expr, Fields, FieldsNamed, FieldsUnnamed, Lit, LitStr, Meta, parse_quote, Token, Variant};
 use inflector::Inflector;
+use syn::punctuated::Punctuated;
 
 pub fn docs(attrs: &[Attribute]) -> TokenStream {
     let mut docs = Vec::new();
@@ -34,6 +35,31 @@ pub fn docs(attrs: &[Attribute]) -> TokenStream {
 
     #[cfg(not(feature = "docs"))]
     quote!()
+}
+
+pub fn mod_override(attrs: &[Attribute]) -> TokenStream {
+    for attr in attrs {
+        if attr.path().is_ident("burr") {
+            match attr.parse_args_with(Punctuated::<parse::Meta, Token![,]>::parse_terminated) {
+                Ok(items) => {
+                    for meta in items {
+                        match meta {
+                            parse::Meta::KeywordValue(meta) if meta.path == "mod" => {
+                                let value = &meta.value;
+                                let ls: LitStr = parse_quote!(#value);
+                                return quote!(Some(#ls));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+
+    quote!(None)
 }
 
 pub fn auto_registration_fn(name: Ident) -> TokenStream {
@@ -95,6 +121,7 @@ pub fn named_struct_ir(
         .collect::<Vec<_>>();
 
     let ir_docs = docs(&attrs);
+    let module = mod_override(&attrs);
 
     quote! {
         impl burrtype::ir::IrExt for #name {
@@ -106,6 +133,7 @@ pub fn named_struct_ir(
                     ident: burrtype::syn::parse_quote!(#name),
                     id: std::any::TypeId::of::<#name>(),
                     fields,
+                    r#mod: #module,
                     #ir_docs
                 }.into()
             }
@@ -153,6 +181,8 @@ pub fn tuple_struct_ir(
         .collect::<Vec<_>>();
 
     let ir_docs = docs(&attrs);
+    let module = mod_override(&attrs);
+
     quote! {
         impl burrtype::ir::IrExt for #name {
             fn get_ir() -> burrtype::ir::IrItem {
@@ -160,6 +190,7 @@ pub fn tuple_struct_ir(
                     ident: burrtype::syn::parse_quote!(#name),
                     id: std::any::TypeId::of::<#name>(),
                     fields: vec![#(#field_ir)*],
+                    r#mod: #module,
                     #ir_docs
                 }.into()
             }
@@ -172,6 +203,7 @@ pub fn unit_struct_ir(
     name: Ident
 ) -> TokenStream {
     let ir_docs = docs(&attrs);
+    let module = mod_override(&attrs);
 
     quote! {
         impl burrtype::ir::IrExt for #name {
@@ -179,6 +211,7 @@ pub fn unit_struct_ir(
                 burrtype::ir::IrUnitStruct {
                     ident: burrtype::syn::parse_quote!(#name),
                     id: std::any::TypeId::of::<#name>(),
+                    r#mod: #module,
                     #ir_docs
                 }.into()
             }
@@ -195,20 +228,20 @@ pub fn enum_ir(
     let variant_frags = data.variants.into_iter().map(|var| {
         let Variant { attrs, ident, fields, .. } = var;
 
-        if let Some((_, expr)) = var.discriminant {
-            enum_discriminant_variant_ir(attrs, ident, expr)
+        if var.discriminant.is_some() {
+            panic!("Enums with discriminants are unsupported");
         }
-        else {
-            match fields {
-                Fields::Named(inner) => enum_struct_variant_ir(attrs, ident, inner),
-                Fields::Unnamed(inner) => enum_tuple_variant_ir(attrs, ident, inner),
-                Fields::Unit => enum_unit_variant_ir(attrs, ident),
-            }
+
+        match fields {
+            Fields::Named(inner) => enum_struct_variant_ir(attrs, ident, inner),
+            Fields::Unnamed(inner) => enum_tuple_variant_ir(attrs, ident, inner),
+            Fields::Unit => enum_unit_variant_ir(attrs, ident),
         }
     })
     .collect::<Vec<_>>();
 
     let ir_docs = docs(&attrs);
+    let module = mod_override(&attrs);
 
     quote! {
         impl burrtype::ir::IrExt for #name {
@@ -220,26 +253,11 @@ pub fn enum_ir(
                     ident: burrtype::syn::parse_quote!(#name),
                     id: std::any::TypeId::of::<#name>(),
                     variants,
+                    r#mod: #module,
                     #ir_docs
                 }.into()
             }
         }
-    }
-}
-
-fn enum_discriminant_variant_ir(
-    attrs: Vec<Attribute>,
-    name: Ident,
-    expr: Expr,
-) -> TokenStream {
-    let ir_docs = docs(&attrs);
-
-    quote! {
-        variants.push(burrtype::ir::IrEnumDiscriminantVariant {
-            ident: burrtype::syn::parse_quote!(#name),
-            expr: burrtype::syn::parse_quote!(#expr),
-            #ir_docs
-        }.into());
     }
 }
 

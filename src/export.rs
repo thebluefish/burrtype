@@ -2,7 +2,7 @@ mod burrmod;
 mod target;
 
 use std::any::TypeId;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 pub use burrmod::*;
 pub use target::*;
 
@@ -32,7 +32,6 @@ pub enum ExportError {
 pub struct Burrxporter {
     pub mods: Vec<BurrMod>,
     pub root: Option<PathBuf>,
-    pub default_mod: Option<String>,
     pub type_registry: HashMap<TypeId, IrItem>,
 }
 
@@ -47,15 +46,8 @@ impl Burrxporter {
         Burrxporter {
             mods: Vec::new(),
             root: None,
-            default_mod: None,
             type_registry,
         }
-    }
-
-    /// Sets the "default" mod, where unspecified imports will be exported to
-    pub fn with_default_mod<S: Into<String>>(&mut self, target: S) -> &mut Self {
-        self.default_mod = Some(target.into());
-        self
     }
 
     pub fn with_mod<M: Into<BurrMod>>(&mut self, r#mod: M) -> &mut Self {
@@ -75,6 +67,35 @@ impl Burrxporter {
         Ok(self)
     }
 
+    /// Resolves all modules for export
+    /// Collects dependent types and resolves their target modules
+    pub fn resolve_exports(&mut self, default: &str) -> &mut Self {
+        // Ensure dependencies of dependencies are also included by repeatedly checking until no more have been included
+        let mut dirty = true;
+        while dirty {
+            dirty = false;
+
+            let mut exporting = HashSet::<TypeId>::new();
+            let mut importing = HashSet::<TypeId>::new();
+            for om in &self.mods {
+                exporting.extend(om.pull_exports());
+                importing.extend(om.pull_fields());
+            }
+
+            for id in importing.difference(&exporting) {
+                // todo: consider handling the None case
+                // None usually means we have encountered a builtin such as usize or String, but might not always
+                if let Some(tr) = self.type_registry.get(id) {
+                    let path = tr.mod_override().unwrap_or(default);
+                    if let Some(bm) = get_or_create_mod(&mut self.mods, Path::new(path)) {
+                        bm.types.insert(id.clone(), tr.clone());
+                    }
+                }
+            }
+        }
+        self
+    }
+
     /// Gets the writer for a file path
     /// Creates the directory and file if it does not exist, truncates if it does
     // todo: options for allowing user to plugin their writer, something like a Box<dyn Writer> or an enum Burrwriter<'t> { Owned, Shared<'t> }
@@ -92,4 +113,39 @@ impl Burrxporter {
         let file = File::create(path)?;
         Ok(BufWriter::new(file))
     }
+}
+
+/// Gets a module at the specified path, or creates the necessary module tree as needed
+/// todo: convert the return type to a more descriptive error type when we are ready to reorganize things for error handling
+fn get_or_create_mod<'m, 'p>(mods: &'m mut Vec<BurrMod>, path: &'p Path) -> Option<&'m mut BurrMod> {
+    if path.components().count() == 0 {
+        return None;
+    }
+
+    // We have to handle root mods separately from child mods
+    // This feels anti-DRY, but idk a better way
+    let mut components = path.components();
+    let cname = components.next().unwrap().as_os_str().to_string_lossy();
+
+    let mut search = if let Some(pos) = mods.iter().position(|bm| bm.name == cname) {
+        &mut mods[pos]
+    }
+    else {
+        mods.push(BurrMod::new(cname.to_owned()));
+        mods.last_mut().unwrap()
+    };
+
+    for component in components {
+        let cname = component.as_os_str().to_string_lossy();
+
+        search = if let Some(pos) = search.children.iter().position(|bm| bm.name == cname) {
+            &mut search.children[pos]
+        }
+        else {
+            search.children.push(BurrMod::new(cname.to_owned()));
+            search.children.last_mut().unwrap()
+        };
+    }
+
+    Some(search)
 }

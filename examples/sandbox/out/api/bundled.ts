@@ -1,6 +1,3 @@
-/** A unit struct has no shape nor fields */
-export type UnitStruct = null
-
 export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */
@@ -9,7 +6,7 @@ export type Enum =
   | { Struct: { /** An inline comment */ foo: Foo, bar: string }}
   | { TinyTuple: string }
   /** A tuple variant is defined by parenthesis and only types */
-  | { Tuple: [/** Give some meaning to these nameless types */ number, number] }
+  | { Tuple: [/** Give some meaning to these nameless types */ Things, Things] }
   /** A unit variant has no shape nor fields */
   | "Unit"
   /** Bigger structs can expand to a better format */
@@ -22,14 +19,8 @@ export type Enum =
     } }
 ;
 
-export interface NamedStruct {
-  /** Type alias allows us to treat one type like another
-Here we treat a newtype like its known inner type */
-  foo: number,
-  bar: number,
-  /** We need to support optional fields, too */
-  opt?: Foo,
-}
+/** A unit struct has no shape nor fields */
+export type UnitStruct = null
 
 /** A named struct is defined by braces and fields with named */
 export interface Foo {
@@ -38,9 +29,25 @@ export interface Foo {
   two: string,
 }
 
-/** strike the earth! */
-/** Why do we care about such things */
-export type DeepTupleStruct = number
+/** The simplest enum of all unit types */
+export type Things =
+  | "One"
+  | "Two"
+;
+
+export interface NamedStruct {
+  /** Type alias allows us to treat one type like another
+Here we treat a newtype like its known inner type */
+  foo: number,
+  /** Rust reserved keywords should resolve properly for other languages */
+  type: number,
+  /** We need to support optional fields, too */
+  opt?: Foo,
+}
 
 /** A tuple struct is defined by parenthesis and only types */
 export type TupleStruct = [number, Foo]
+
+/** We can assign a module at the type level */
+/** Why do we care about such things */
+export type DeepTupleStruct = number
