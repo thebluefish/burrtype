@@ -41,7 +41,7 @@ pub struct Foo(u64);
 
 ### Exporting your types
 
-In your `build.rs` or another binary, we can create an exporter and optionally configure it. The exporter and its components behave as builder patterns.
+In your program's `main()` or (preferably) another binary, we can create an exporter and optionally configure it. The exporter and its components behave as builder patterns.
 
 ```rust
 Burrxporter::new()
@@ -94,14 +94,3 @@ Alternatively, you can register a 3rd-party type as a string name representing t
         .with_type_name::<rust_decimal::Decimal>("number")
     )?
 ```
-
----
-
-## Desired features going forward
-
-- Replace panics with errors
-- tests
-
-- Rust target
-  - Support the same set of common features as TypeScript
-  - Generic types?
