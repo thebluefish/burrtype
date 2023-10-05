@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
         // Types with `#[burr(mod = "path")]` attributes will have their types added to the given module path, creating the module tree as necessary
         // Otherwise they will be added to the default module specified by this method, creating it if it does not exist
         .resolve_exports("common")
-        // Since no new types need to be added, this should not create an empty module
+        // Since no new types need to be added, this should not create a new module
         .resolve_exports("shared")
         // Builds and writes outputs
         // The options associated with outputs should correspond to features specific to a language

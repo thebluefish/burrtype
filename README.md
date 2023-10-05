@@ -28,14 +28,23 @@ pub struct Foo(u64);
 pub struct Bar(Foo);
 ```
 
+Use the optional `#[burr(mod)]` attribute to assign your type to a module automatically.
+
+```rust
+use burrtype::prelude::*;
+
+#[derive(Burr)]
+// `Foo` will be automatically included in the specified module if not explicitly included during export
+#[burr(mod = "common/types")]
+pub struct Foo(u64);
+```
+
 ### Exporting your types
 
 In your `build.rs` or another binary, we can create an exporter and optionally configure it. The exporter and its components behave as builder patterns.
 
 ```rust
 Burrxporter::new()
-    // auto-registered types depended on by your types will be exported here
-    .with_default_mod("common")
 ```
 
 Add your types using modules to organize them. This module tree typically translates to the file structure being produced - with one file per module - but language constraits, features, or options can change this behavior.
@@ -44,6 +53,12 @@ Add your types using modules to organize them. This module tree typically transl
     .with_mod(BurrMod::new("bar")
         .with_type::<Bar>()
     )
+```
+
+Resolve type dependencies, which exports types your types depend on. They will be added to either the type's chosen module or the given default module. This step is unnecessary if you explicitly include all types needed to describe your data.
+
+```rust
+    .resolve_exports("common")
 ```
 
 Export to one or more targets.
