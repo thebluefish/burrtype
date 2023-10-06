@@ -1,6 +1,6 @@
 use crate::gen::BurrMeta;
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens};
+use proc_macro2::TokenStream;
+use quote::quote;
 use syn::{Attribute, LitStr, Meta, parse_quote, Token};
 use syn::punctuated::Punctuated;
 

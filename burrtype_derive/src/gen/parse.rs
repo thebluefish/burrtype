@@ -1,9 +1,7 @@
 use crate::gen::BurrMeta;
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote_spanned, ToTokens};
-use syn::{Expr, Field, GenericArgument, MetaList, MetaNameValue, parse_quote, Path, PathArguments, Token, Type};
-use syn::ext::IdentExt;
-use syn::parse::{Parse, ParseStream};
+use proc_macro2::{TokenStream};
+use quote::quote_spanned;
+use syn::{Field, GenericArgument, parse_quote, PathArguments, Token, Type};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 

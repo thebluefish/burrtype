@@ -2,7 +2,7 @@ import { AxiosInstance } from "axios"
 import {AdjacentlyTaggedEnum, InternallyTaggedEnum, UntaggedEnum} from "./api/things"
 import {assert_eq} from "./util";
 
-async function run_all(client: AxiosInstance) {
+export default async function run_all(client: AxiosInstance) {
     // untagged enum variant
     await untagged_enum_struct(client)
     await untagged_enum_tuple(client)

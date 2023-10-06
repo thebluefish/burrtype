@@ -1,4 +1,3 @@
-use proc_macro2::TokenStream;
 use syn::{Attribute, Token};
 use syn::punctuated::Punctuated;
 use crate::gen::BurrMeta;

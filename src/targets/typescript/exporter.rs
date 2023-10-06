@@ -9,10 +9,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
-use syn::Lit::Str;
-use syn::token::Enum;
-use syn::Type;
-use burrtype_internal::ir::{EnumRepr, IrEnumStructVariant, IrEnumVariant, IrItem, IrNamedField, IrUnnamedField};
+use burrtype_internal::ir::{EnumRepr, IrEnumVariant, IrItem, IrNamedField, IrUnnamedField};
 
 /// An export-friendly version of the Typescript export builder
 /// Contains files being exported and computed metadata about files and their types
