@@ -1,7 +1,3 @@
-import { NamedStruct, TupleStruct } from '../../types'
-import { DeepTupleStruct } from '../../deep/types'
-import { Foo, Things } from '../../common'
-
 export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */

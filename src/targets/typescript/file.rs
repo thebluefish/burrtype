@@ -19,7 +19,7 @@ impl From<BurrMod> for TsFile {
         TsFile {
             name: value.name.clone(),
             target: PathBuf::from(value.name).with_extension("ts"),
-            items: value.types.into_values().collect(),
+            items: value.exports.iter().map(|id| value.types.get(id).unwrap().clone()).collect(),
             mods: value.children,
         }
     }

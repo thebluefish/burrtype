@@ -199,7 +199,8 @@ impl<'f> Target for TypeScript<'f> {
 
 fn flatten_all(target: &mut TsFile, mods: Vec<BurrMod>) {
     for child in mods {
-        target.items.extend(child.types.into_values());
+        target.items.extend(child.exports.iter().map(|id| child.types.get(id).unwrap().clone()));
+        target.items.extend(child.auto_exports.iter().map(|id| child.types.get(id).unwrap().clone()));
         flatten_all(target, child.children);
     }
 }
@@ -228,7 +229,8 @@ fn decompose_all(file: &mut TsFile) -> Vec<TsFile> {
 /// Gets a flat list of all items
 fn pull_flat_items(bm: &BurrMod) -> Vec<&IrItem> {
     let mut items = Vec::new();
-    items.extend(bm.types.values());
+    items.extend(bm.exports.iter().map(|id| bm.types.get(id).unwrap()));
+    items.extend(bm.auto_exports.iter().map(|id| bm.types.get(id).unwrap()));
     for child in &bm.children {
         items.extend(pull_flat_items(child));
     }

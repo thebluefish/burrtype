@@ -82,6 +82,7 @@ impl Burrxporter {
                 importing.extend(om.pull_fields());
             }
 
+            let mut touched_mods = Vec::new();
             for id in importing.difference(&exporting) {
                 // todo: consider handling the None case
                 // None usually means we have encountered a builtin such as usize or String, but might not always
@@ -89,8 +90,19 @@ impl Burrxporter {
                     let path = tr.mod_override().unwrap_or(default);
                     if let Some(bm) = get_or_create_mod(&mut self.mods, Path::new(path)) {
                         bm.types.insert(id.clone(), tr.clone());
+                        bm.auto_exports.push(id.clone());
+                        touched_mods.push(Path::new(path));
                     }
                 }
+            }
+
+            for path in touched_mods {
+                let tm = get_or_create_mod(&mut self.mods, path).unwrap();
+                tm.auto_exports.sort_by(|a, b| {
+                    let a = tm.types.get(a).unwrap().name();
+                    let b = tm.types.get(b).unwrap().name();
+                    a.cmp(&b)
+                });
             }
         }
         self

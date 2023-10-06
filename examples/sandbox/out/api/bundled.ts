@@ -32,23 +32,6 @@ Even below when this field is substituted in using #[serde(flatten)] */
 }
 
 /** An enum's variants correlate with struct variants */
-export type UntaggedEnum =
-  | { foo: Foo, bar: string }
-  /** Unit variant will be a string, but the newtype below will also capture a string
-In untagged enum representations, serde will attempt them top-to-bottom
-So we place more specific cases before general ones */
-  | "unit"
-  | string
-  | [Stuff, Stuff]
-  /** Bigger structs can expand to a better format */
-  | {
-      THREE: DeepTupleStruct,
-      FOUR?: RenamedStruct,
-      six: TupleStruct,
-    }
-;
-
-/** An enum's variants correlate with struct variants */
 export type InternallyTaggedEnum =
   | { type: "Struct", foo: Foo, bar: string }
   | { type: "Unit" }
@@ -84,6 +67,23 @@ export type AdjacentlyTaggedEnum =
     }
 ;
 
+/** An enum's variants correlate with struct variants */
+export type UntaggedEnum =
+  | { foo: Foo, bar: string }
+  /** Unit variant will be a string, but the newtype below will also capture a string
+In untagged enum representations, serde will attempt them top-to-bottom
+So we place more specific cases before general ones */
+  | "unit"
+  | string
+  | [Stuff, Stuff]
+  /** Bigger structs can expand to a better format */
+  | {
+      THREE: DeepTupleStruct,
+      FOUR?: RenamedStruct,
+      six: TupleStruct,
+    }
+;
+
 export interface NamedStruct {
   /** Type alias allows us to treat one type like another
 Here we treat a newtype like its known inner type */
@@ -97,16 +97,6 @@ Here we treat a newtype like its known inner type */
 /** A tuple struct is defined by parenthesis and only types */
 export type TupleStruct = [number, Foo]
 
-/** We can assign a module at the type level */
-/** Why do we care about such things */
-export type DeepTupleStruct = number
-
-/** The simplest enum of all unit types */
-export type Things =
-  | "One"
-  | "Two"
-;
-
 /** A named struct is defined by braces and fields with named */
 export interface Foo {
   /** comments work at all levels
@@ -119,3 +109,13 @@ export type Stuff =
   | "red"
   | "two"
 ;
+
+/** The simplest enum of all unit types */
+export type Things =
+  | "One"
+  | "Two"
+;
+
+/** We can assign a module at the type level */
+/** Why do we care about such things */
+export type DeepTupleStruct = number

@@ -7,6 +7,8 @@ use burrtype_internal::prelude::IrExt;
 #[derive(Clone, Debug)]
 pub struct BurrMod {
     pub name: String,
+    pub exports: Vec<TypeId>,
+    pub auto_exports: Vec<TypeId>,
     pub types: HashMap<TypeId, IrItem>,
     pub children: Vec<BurrMod>,
 }
@@ -15,13 +17,15 @@ impl BurrMod {
     pub fn new<S: Into<String>>(target: S) -> Self {
         BurrMod {
             name: target.into(),
+            exports: Vec::new(),
+            auto_exports: Vec::new(),
             types: HashMap::new(),
             children: Vec::new(),
         }
     }
 
     /// Gets a flat set of all types being exported by a module
-    pub fn pull_exports(&self) -> HashSet<TypeId> {
+    pub(crate) fn pull_exports(&self) -> HashSet<TypeId> {
         let mut types = HashSet::new();
         types.extend(self.types.keys());
         // repeat this recursively
@@ -32,7 +36,7 @@ impl BurrMod {
     }
 
     /// Gets a flat set of all types being used by a module
-    pub fn pull_fields(&self) -> HashSet<TypeId> {
+    pub(crate) fn pull_fields(&self) -> HashSet<TypeId> {
         let mut fields = HashSet::new();
         // iterate fields for each type and add field's TypeId to set
         for (_, item) in &self.types {
@@ -65,7 +69,8 @@ impl BurrMod {
 
     pub fn with_type<T: IrExt>(mut self) -> Self {
         let item = T::get_ir();
-        self.types.insert(item.type_id(), item);
+        self.types.insert(item.type_id(), item.clone());
+        self.exports.push(item.type_id().clone());
         self
     }
 
