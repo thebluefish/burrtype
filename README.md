@@ -5,15 +5,6 @@ Exports your types to other languages, currently supporting TypeScript.
 
 This crate primarily targets compatibility with the `serde` framework and its representations. Compatibility with `#[serde]` derive macro attributes are offered behind the default `serde_compat` feature.
 
-## Install
-
-Add to your `Cargo.toml`
-
-```toml
-[dependencies]
-burrtype = { version = "0.2", features = ["typescript"] }
-```
-
 ## Usage
 
 ### Preparing your types
@@ -30,13 +21,12 @@ pub struct Foo(u64);
 pub struct Bar(Foo);
 ```
 
-Use the optional `#[burr(mod)]` attribute to assign your type to a module automatically.
+Use the optional `#[burr(mod)]` attribute to assign your type to a module automatically. Here, `Foo` will be automatically included in the specified module if not explicitly included during export.
 
 ```rust
 use burrtype::prelude::*;
 
 #[derive(Burr)]
-// `Foo` will be automatically included in the specified module if not explicitly included during export
 #[burr(mod = "common/types")]
 pub struct Foo(u64);
 ```
@@ -63,6 +53,12 @@ Resolve type dependencies, which exports types your types depend on. They will b
     .resolve_exports("common")
 ```
 
+Alternatively, you can automatically include **all** types marked with the `#[burr(mod = "path")]` attribute. This can side-step the need to manually build your output modules.
+
+```rust
+    .resolve_all("common")
+```
+
 Export to one or more targets.
 
 ```rust
@@ -72,7 +68,7 @@ Export to one or more targets.
     .export("out/bundled.ts", TypeScript::new().with_file_map(ModFileMap::Inline))?
 ```
 
-See these concepts in action in [the example](examples/sandbox/).
+See these concepts in action in [the examples](examples/).
 
 ### 3rd-party types
 

@@ -1,6 +1,6 @@
 // `#[warn(unused_imports)]` false positive - this is needed to bring types into scope
 #[allow(unused_imports)]
-use auto_types::*;
+use auto_types;
 use burrtype::prelude::*;
 
 /// This example demonstrates exporting your types via their configured target modules at the type-level
