@@ -1,3 +1,5 @@
+export type Bar = Foo
+
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
@@ -20,8 +22,6 @@ export type Enum =
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
 
-export type Bar = Foo
-
 export interface RenamedStruct {
   FOO: Stuff,
   optional?: Foo,
@@ -30,25 +30,6 @@ Even below when this field is substituted in using #[serde(flatten)] */
   one: number,
   two: string,
 }
-
-/** An enum's variants correlate with struct variants */
-export type AdjacentlyTaggedEnum =
-  | { t: "Struct", c: { foo: Foo, bar: string } }
-  | { t: "TinyTuple", c: string }
-  | {
-      t: "Tuple",
-      c: [Stuff, Stuff],
-    }
-  | { t: "Unit" }
-  | {
-      t: "BigStruct",
-      c: {
-        THREE: DeepTupleStruct,
-        FOUR?: RenamedStruct,
-        six: TupleStruct,
-      }
-    }
-;
 
 /** An enum's variants correlate with struct variants */
 export type UntaggedEnum =
@@ -84,23 +65,23 @@ Even below when this field is substituted in using #[serde(flatten)] */
     }
 ;
 
-/** A named struct is defined by braces and fields with named */
-export interface Foo {
-  /** comments work at all levels
-Even below when this field is substituted in using #[serde(flatten)] */
-  one: number,
-  two: string,
-}
-
-export type Stuff =
-  | "red"
-  | "two"
-;
-
-/** The simplest enum of all unit types */
-export type Things =
-  | "One"
-  | "Two"
+/** An enum's variants correlate with struct variants */
+export type AdjacentlyTaggedEnum =
+  | { t: "Struct", c: { foo: Foo, bar: string } }
+  | { t: "TinyTuple", c: string }
+  | {
+      t: "Tuple",
+      c: [Stuff, Stuff],
+    }
+  | { t: "Unit" }
+  | {
+      t: "BigStruct",
+      c: {
+        THREE: DeepTupleStruct,
+        FOUR?: RenamedStruct,
+        six: TupleStruct,
+      }
+    }
 ;
 
 export interface NamedStruct {
@@ -119,3 +100,22 @@ export type TupleStruct = [number, Foo]
 /** We can assign a module at the type level */
 /** Why do we care about such things */
 export type DeepTupleStruct = number
+
+/** The simplest enum of all unit types */
+export type Things =
+  | "One"
+  | "Two"
+;
+
+/** A named struct is defined by braces and fields with named */
+export interface Foo {
+  /** comments work at all levels
+Even below when this field is substituted in using #[serde(flatten)] */
+  one: number,
+  two: string,
+}
+
+export type Stuff =
+  | "red"
+  | "two"
+;

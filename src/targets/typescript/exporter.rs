@@ -9,7 +9,9 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
+use syn::Lit::Str;
 use syn::token::Enum;
+use syn::Type;
 use burrtype_internal::ir::{EnumRepr, IrEnumStructVariant, IrEnumVariant, IrItem, IrNamedField, IrUnnamedField};
 
 /// An export-friendly version of the Typescript export builder
@@ -38,7 +40,7 @@ impl<'t> TsExporter<'t> {
             // build imports
             // these will be written first and should look like:
             // import * as {name} from {path}
-            let mut field_types = HashSet::new();
+            let mut field_types = Vec::new();
 
             for item in &file.items {
                 field_types.extend(item.all_field_types());
@@ -60,12 +62,21 @@ impl<'t> TsExporter<'t> {
             }
             // remove self-references
             import_map.remove(&file.target);
-
-            // todo: disambiguate any duplicate import names here
-            // maybe build a HashSet of short_name()s, upon discovering a duplicate, start adding parts of a path to one until it's unique, etc..
+            let import_map: Vec<(PathBuf, HashSet<TypeId>)> = import_map.into_iter().collect();
 
             // iterate imports and write them
-            for (import, types) in &import_map {
+            // for (import, types) in &import_map {
+            let mut import_map: Vec<(PathBuf, String)> = import_map.into_iter().map(|(import, types)| {
+                let mut types: Vec<&IrItem> = types.iter()
+                    .map(|id| self.type_registry.get(id).expect("type should be known by now"))
+                    .collect();
+
+                // sort type imports alphabetically
+                types.sort_by(|a, b| {
+                    a.name().cmp(&b.name())
+                });
+
+                let mut out = String::new();
                 // resolve relative path from other file to this one
                 let mut depth = 0;
                 let mut parent = file.target.parent();
@@ -94,11 +105,31 @@ impl<'t> TsExporter<'t> {
                     if i > 0 {
                         out.push_str(", ");
                     }
-                    let item = self.type_registry.get(ty).expect("type should be known by now");
-                    out.push_str(&strip_rust_prefix(format!("{}", item.ident())));
+                    out.push_str(&strip_rust_prefix(format!("{}", ty.ident())));
                 }
                 // write import tail
                 out.push_str(&format!(" }} from '{}'\n", full_path.to_slash_lossy()));
+
+                (import, out)
+            }).collect();
+
+            // sort imports by path
+            // longest to shortest, followed by alphabetical sorting
+            import_map.sort_by(|(a, astr), (b, bstr)| {
+                if astr.len() != bstr.len() {
+                    astr.len().cmp(&bstr.len())
+                }
+                else if a.as_os_str().len() != b.as_os_str().len() {
+                    a.as_os_str().len().cmp(&b.as_os_str().len())
+                }
+                else {
+                    a.as_os_str().cmp(b.as_os_str())
+                }
+            });
+            import_map.reverse();
+
+            for (_, import) in &import_map {
+                out.push_str(import);
             }
 
             // separate imports and exports, if any

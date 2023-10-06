@@ -114,11 +114,6 @@ impl<'f> Target for TypeScript<'f> {
         let TypeScript { formatter, mod_file_map, type_map, type_overrides } = self;
         let mods = exporter.mods.clone();
 
-        // collect types that are being imported, but are not explicitly exported by the user
-        // then write them to the "default" module
-        // todo: consider moving this a target-agnostic method on Burrxporter
-
-
         // builds the set of files to write
         let mut files = HashMap::new();
         match mod_file_map {
