@@ -3,6 +3,7 @@ import axios, {AxiosError} from "axios"
 import {DeepTupleStruct} from "./api/deep";
 import {Foo} from "./api/common";
 import {NamedStruct, TupleStruct} from "./api/types";
+import {assert_eq} from "./util"
 
 let client = axios.create({
     baseURL: 'http://127.0.0.1:3000',
@@ -35,12 +36,13 @@ async function run_all() {
 }
 
 async function foo() {
-    let result = await client.get<DeepTupleStruct>('/foo')
+    let result = await client.get<Foo>('/foo')
     console.log("foo: ", result.data)
 
     let data: Foo = { one: 1, two: "owt" }
 
-    await client.post('/foo', data)
+    let ret = await client.post<Foo>('/foo', data)
+    assert_eq(data, ret.data)
 }
 
 async function bar() {
@@ -49,7 +51,8 @@ async function bar() {
 
     let data: Bar = { one: 2, two: "eno" }
 
-    await client.post('/bar', data)
+    let ret = await client.post<Bar>('/bar', data)
+    assert_eq(data, ret.data)
 }
 
 async function deep_tuple_struct() {
@@ -58,7 +61,8 @@ async function deep_tuple_struct() {
 
     let data: any = 1080
 
-    await client.post('/deep_tuple_struct', data)
+    let ret = await client.post<DeepTupleStruct>('/deep_tuple_struct', data)
+    assert_eq(data, ret.data)
 }
 
 async function named_struct() {
@@ -67,10 +71,11 @@ async function named_struct() {
 
     let data: NamedStruct = {
         foo: 4,
-        type: 420.69,
+        ty: 420.69
     }
 
-    await client.post('/named_struct', data)
+    let ret = await client.post<NamedStruct>('/named_struct', data)
+    assert_eq(data, ret.data)
 }
 
 async function tuple_struct() {
@@ -79,20 +84,22 @@ async function tuple_struct() {
 
     let data: TupleStruct = [69, { one: 420, two: "nice" }]
 
-    await client.post('/tuple_struct', data)
+    let ret = await client.post<TupleStruct>('/tuple_struct', data)
+    assert_eq(data, ret.data)
 }
 
 async function unit_struct() {
-    let result = await client.get('/unit_struct')
+    let result = await client.get<UnitStruct>('/unit_struct')
     console.log("unit_struct: ", result.data)
 
     let data: UnitStruct = null
 
-    await client.post('/unit_struct', data)
+    let ret = await client.post<UnitStruct>('/unit_struct', data)
+    assert_eq(data, ret.data)
 }
 
 async function enum_struct() {
-    let result = await client.get('/enum_struct')
+    let result = await client.get<Enum>('/enum_struct')
     console.log("enum_struct: ", result.data)
 
     let data: Enum = {
@@ -105,51 +112,59 @@ async function enum_struct() {
         }
     }
 
-    await client.post('/enum_struct', data)
+    let ret = await client.post<Enum>('/enum_struct', data)
+    assert_eq(data, ret.data)
 }
 
 async function enum_tuple() {
-    let result = await client.get('/enum_tuple')
+    let result = await client.get<Enum>('/enum_tuple')
     console.log("enum_tuple: ", result.data)
 
     let data: Enum = {
         Tuple: ["One", "Two"],
     }
 
-    await client.post('/enum_tuple', data)
+    let ret = await client.post<Enum>('/enum_tuple', data)
+    assert_eq(data, ret.data)
 }
 
 async function enum_tiny_tuple() {
-    let result = await client.get('/enum_tiny_tuple')
+    let result = await client.get<Enum>('/enum_tiny_tuple')
     console.log("enum_tiny_tuple: ", result.data)
 
     let data: Enum = {
         TinyTuple: "lol",
     }
 
-    await client.post('/enum_tiny_tuple', data)
+    let ret = await client.post<Enum>('/enum_tiny_tuple', data)
+    assert_eq(data, ret.data)
 }
 
 async function enum_unit() {
-    let result = await client.get('/enum_unit')
+    let result = await client.get<Enum>('/enum_unit')
     console.log("enum_unit: ", result.data)
 
     let data: Enum = "Unit"
 
-    await client.post('/enum_unit', data)
+    let ret = await client.post<Enum>('/enum_unit', data)
+    assert_eq(data, ret.data)
 }
 
 async function enum_big_struct() {
-    let result = await client.get('/enum_big_struct')
+    let result = await client.get<Enum>('/enum_big_struct')
     console.log("enum_big_struct: ", result.data)
 
     let data: Enum = {
         BigStruct: {
-            one: 1,
-            three: [3, { one: 6, two: "12" }],
-            four:  { one: 1, two: "2" },
+            one: {
+                one: 0,
+                two: "1",
+            },
+            three: 3,
+            five: [0, {one: 1, two: "2"}],
         }
     }
 
-    await client.post('/enum_big_struct', data)
+    let ret = await client.post<Enum>('/enum_big_struct', data)
+    assert_eq(data, ret.data)
 }

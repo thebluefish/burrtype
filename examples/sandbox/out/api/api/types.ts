@@ -5,7 +5,7 @@ export interface NamedStruct {
 Here we treat a newtype like its known inner type */
   foo: number,
   /** Rust reserved keywords should resolve properly for other languages */
-  type: number,
+  ty: number,
   /** We need to support optional fields, too */
   opt?: Foo,
 }

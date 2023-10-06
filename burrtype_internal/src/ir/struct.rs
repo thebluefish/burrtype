@@ -2,6 +2,11 @@ use super::{IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use proc_macro2::Ident;
 
+/// Helper trait to get flatten-able items at compile time
+pub trait NamedStructExt {
+    fn fields() -> Vec<IrNamedField>;
+}
+
 /// A struct with the format:
 /// ```
 /// struct T {

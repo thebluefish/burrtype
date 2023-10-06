@@ -1,3 +1,4 @@
+use crate::gen::BurrMeta;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote_spanned, ToTokens};
 use syn::{Expr, Field, GenericArgument, MetaList, MetaNameValue, parse_quote, Path, PathArguments, Token, Type};
@@ -15,66 +16,6 @@ pub struct FlaggedField {
     pub ty: Option<Type>,
     /// original data
     pub field: Field,
-}
-
-/// Like syn::Meta with an extra variant to support keywords in `name = value` attributes
-pub enum Meta {
-    Path(Path),
-    List(MetaList),
-    NameValue(MetaNameValue),
-    KeywordValue(TypeValue),
-}
-
-impl ToTokens for Meta {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Meta::Path(inner) => inner.to_tokens(tokens),
-            Meta::List(inner) => inner.to_tokens(tokens),
-            Meta::NameValue(inner) => inner.to_tokens(tokens),
-            Meta::KeywordValue(inner) => inner.to_tokens(tokens),
-        }
-    }
-}
-
-impl Parse for Meta {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        if let Ok(parsed) = input.parse::<Path>() {
-            Ok(Meta::Path(parsed))
-        }
-        else if let Ok(parsed) = input.parse::<MetaList>() {
-            Ok(Meta::List(parsed))
-        }
-        else if let Ok(parsed) = input.parse::<MetaNameValue>() {
-            Ok(Meta::NameValue(parsed))
-        }
-        else {
-            input.parse().map(Meta::KeywordValue)
-        }
-    }
-}
-
-pub struct TypeValue {
-    pub path: Ident,
-    pub eq_token: Token![=],
-    pub value: Expr,
-}
-
-impl ToTokens for TypeValue {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.path.to_tokens(tokens);
-        self.eq_token.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-    }
-}
-
-impl Parse for TypeValue {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(TypeValue {
-            path: Ident::parse_any(input)?,
-            eq_token: input.parse()?,
-            value: input.parse()?,
-        })
-    }
 }
 
 /// Tries to parse a `T` out of `Option<T>` types
@@ -111,18 +52,37 @@ pub fn named_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
 
     // parse attributes
     for attr in &field.attrs {
-        if attr.path().is_ident("burr") {
-            match attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {
+        #[cfg(feature = "serde_compat")]
+        if attr.path().is_ident("serde") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
                 Ok(items) => {
                     for meta in items {
                         match meta {
-                            Meta::Path(path) if path.is_ident("ignore") => {
+                            BurrMeta::Path(path) if path.is_ident("skip") => {
                                 ignore = true;
                             }
-                            Meta::Path(path) if path.is_ident("flatten") => {
+                            BurrMeta::Path(path) if path.is_ident("flatten") => {
                                 flatten = true;
                             }
-                            Meta::KeywordValue(meta) if meta.path == "type" => {
+                            _ => {}
+                        }
+                    }
+                }
+                Err(err) => return Err(err.into_compile_error()),
+            }
+        }
+        if attr.path().is_ident("burr") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
+                Ok(items) => {
+                    for meta in items {
+                        match meta {
+                            BurrMeta::Path(path) if path.is_ident("ignore") => {
+                                ignore = true;
+                            }
+                            BurrMeta::Path(path) if path.is_ident("flatten") => {
+                                flatten = true;
+                            }
+                            BurrMeta::KeywordValue(meta) if meta.path == "type" => {
                                 let value = &meta.value;
                                 ty = Some(parse_quote!(#value));
                             }
@@ -156,15 +116,31 @@ pub fn unnamed_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
 
     // parse attributes
     for attr in &field.attrs {
-        if attr.path().is_ident("burr") {
-            match attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {
+        #[cfg(feature = "serde_compat")]
+        if attr.path().is_ident("serde") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
                 Ok(items) => {
                     for meta in items {
                         match meta {
-                            Meta::Path(path) if path.is_ident("ignore") => {
+                            BurrMeta::Path(path) if path.is_ident("skip") => {
                                 ignore = true;
                             }
-                            Meta::KeywordValue(meta) if meta.path == "type" => {
+                            _ => {}
+                        }
+                    }
+                }
+                Err(err) => return Err(err.into_compile_error()),
+            }
+        }
+        if attr.path().is_ident("burr") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
+                Ok(items) => {
+                    for meta in items {
+                        match meta {
+                            BurrMeta::Path(path) if path.is_ident("ignore") => {
+                                ignore = true;
+                            }
+                            BurrMeta::KeywordValue(meta) if meta.path == "type" => {
                                 let value = &meta.value;
                                 ty = Some(parse_quote!(#value));
                             }

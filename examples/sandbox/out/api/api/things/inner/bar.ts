@@ -1,8 +1,6 @@
 import { Foo, Things } from '../../common'
-import { DeepTupleStruct } from '../../deep/types'
 import { TupleStruct, NamedStruct } from '../../types'
-
-export type Bar = Foo
+import { DeepTupleStruct } from '../../deep/types'
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
@@ -10,18 +8,20 @@ export type Enum =
   | { Struct: { /** An inline comment */ foo: Foo, bar: string }}
   | { TinyTuple: string }
   /** A tuple variant is defined by parenthesis and only types */
-  | { Tuple: [/** Give some meaning to these nameless types */ Things, Things] }
+  | { Tuple: [/** Comments give meaning to these nameless types */ Things, Things] }
   /** A unit variant has no shape nor fields */
   | "Unit"
   /** Bigger structs can expand to a better format */
   | { BigStruct: {
+      one: Foo,
       /** It doesn't matter where types are, we can reference them */
-      one: DeepTupleStruct,
-      two?: NamedStruct,
-      three: TupleStruct,
-      four: Foo,
-    } }
+      three: DeepTupleStruct,
+      four?: NamedStruct,
+      five: TupleStruct,
+    }}
 ;
 
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
+
+export type Bar = Foo

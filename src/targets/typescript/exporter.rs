@@ -9,7 +9,8 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use path_macro::path;
 use path_slash::*;
-use burrtype_internal::ir::{IrEnumVariant, IrItem};
+use syn::token::Enum;
+use burrtype_internal::ir::{EnumRepr, IrEnumStructVariant, IrEnumVariant, IrItem, IrNamedField, IrUnnamedField};
 
 /// An export-friendly version of the Typescript export builder
 /// Contains files being exported and computed metadata about files and their types
@@ -215,76 +216,144 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = ir.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
+
                 out.push_str(&format!("{}export type {} =\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name()).to_pascal_case()));
                 self.formatter.depth.fetch_add(1, Ordering::Relaxed);
 
-                for var in &ir.variants {
-                    match var {
-                        IrEnumVariant::Struct(ir) => {
-                            #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
-                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
-                            }
-                            let compact = self.formatter.compact_enum.map(|n| ir.fields.len() <= n).unwrap_or(false);
-                            // struct variant head
-                            if compact {
-                                out.push_str(&format!("{}| {{ {}: {{ ", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
-                            }
-                            else {
-                                out.push_str(&format!("{}| {{ {}: {{\n", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
-                            }
+                self.format_enum_variants(&mut out, ir.repr, &ir.variants);
+
+                // enum tail
+                self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                out.push_str(&format!(";"));
+            }
+        }
+        out
+    }
+
+    fn format_enum_variants(&self, out: &mut String, repr: EnumRepr, variants: &[IrEnumVariant]) {
+        for var in variants {
+            match var {
+                IrEnumVariant::Struct(vir) => {
+                    #[cfg(feature = "comments")]
+                    if let Some(doc) = vir.docs {
+                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                    }
+                    let compact = self.formatter.compact_enum.map(|n| vir.fields.len() <= n).unwrap_or(false);
+
+                    match repr {
+                        EnumRepr::External => {
+                            out.push_str(&format!("{}| {{ {}: {{{}",
+                                                  self.formatter.get_indentation(),
+                                                  strip_rust_prefix(var.name()),
+                                                  if compact { " " } else { "\n" },
+                            ));
                             self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                            for (n, field) in ir.fields.iter().enumerate() {
-                                if compact {
-                                    if n > 0 {
-                                        out.push_str(&format!(", "));
-                                    }
-                                    #[cfg(feature = "comments")]
-                                    if let Some(doc) = field.docs {
-                                        out.push_str(&format!("/** {doc} */ "));
-                                    }
-                                    out.push_str(&format!("{}{}: {}",
-                                                          strip_rust_prefix(field.name()),
-                                                          if field.ty.optional { "?" } else { "" },
-                                                          self.get_field_name(field.ty.id)
-                                    ));
-                                }
-                                else {
-                                    #[cfg(feature = "comments")]
-                                    if let Some(doc) = field.docs {
-                                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
-                                    }
-                                    out.push_str(&format!("{}{}{}: {},\n",
-                                                          self.formatter.get_indentation(),
-                                                          strip_rust_prefix(field.name()),
-                                                          if field.ty.optional { "?" } else { "" },
-                                                          self.get_field_name(field.ty.id)
-                                    ));
-                                }
-                            }
+                            self.format_enum_struct_fields(out, compact, &vir.fields);
 
-                            // struct variant tail
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
-                            if compact {
-                                out.push_str(&format!(" }}}}\n"));
-                            }
-                            else {
-                                out.push_str(&format!("{}}} }}\n", self.formatter.get_indentation()));
-                            }
+                            out.push_str(&format!("{}}}}}\n",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                            ));
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                         }
-                        IrEnumVariant::Tuple(ir) => {
-                            #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
-                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
-                            }
-                            if ir.fields.len() == 1 {
-                                let field = ir.fields.first().unwrap();
-                                #[cfg(feature = "comments")]
-                                if let Some(doc) = field.docs {
-                                    out.push_str(&format!("/** {doc} */ "));
-                                }
+                        EnumRepr::Untagged => {
+                            out.push_str(&format!("{}| {{{}",
+                                                  self.formatter.get_indentation(),
+                                                  if compact { " " } else { "\n" },
+                            ));
+                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
+
+                            self.format_enum_struct_fields(out, compact, &vir.fields);
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                            out.push_str(&format!("{}}}\n",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                            ));
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                        }
+                        EnumRepr::Internal(tag) => {
+                            out.push_str(&format!("{}| {{{}",
+                                                  self.formatter.get_indentation(),
+                                                  if compact { " " } else { "\n" },
+                            ));
+                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
+
+                            out.push_str(&format!("{}{}: \"{}\",{}",
+                                                  if compact { Cow::from("") } else { self.formatter.get_indentation() },
+                                                  tag,
+                                                  strip_rust_prefix(var.name()),
+                                                  if compact { " " } else { "\n" },
+                            ));
+
+                            self.format_enum_struct_fields(out, compact, &vir.fields);
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                            out.push_str(&format!("{}}}\n",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                            ));
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                        }
+                        EnumRepr::Adjacent { tag, content } => {
+                            out.push_str(&format!("{}| {{{}",
+                                                  self.formatter.get_indentation(),
+                                                  if compact { " " } else { "\n" },
+                            ));
+                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
+
+                            out.push_str(&format!("{}{}: \"{}\",{}",
+                                                  if compact { Cow::from("") } else { self.formatter.get_indentation() },
+                                                  tag,
+                                                  strip_rust_prefix(var.name()),
+                                                  if compact { " " } else { "\n" },
+                            ));
+
+                            out.push_str(&format!("{}{}: {{{}",
+                                                  if compact { Cow::from("") } else { self.formatter.get_indentation() },
+                                                  content,
+                                                  if compact { " " } else { "\n" },
+                            ));
+                            self.formatter.depth.fetch_add(1, Ordering::Relaxed);
+
+                            self.format_enum_struct_fields(out, compact, &vir.fields);
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                            out.push_str(&format!("{}}}{}",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                                                  if compact { "" } else { "\n" },
+                            ));
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                            out.push_str(&format!("{}}}\n",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                            ));
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                        }
+                    }
+                }
+                IrEnumVariant::Tuple(vir) => {
+                    #[cfg(feature = "comments")]
+                    if let Some(doc) = vir.docs {
+                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                    }
+
+                    // "Newtypes" - tuples with exactly one field - are written without the surrounding tuple representation
+                    // This unwrapping of the inner type means we need to flatten any docs too
+                    let compact = if vir.fields.len() == 1 {
+                        let field = vir.fields.first().unwrap();
+                        #[cfg(feature = "comments")]
+                        if let Some(doc) = field.docs {
+                            out.push_str(&format!("/** {doc} */ "));
+                        }
+                        true
+                    }
+                    else { false };
+
+                    match repr {
+                        EnumRepr::External => {
+                            if compact {
+                                let field = vir.fields.first().unwrap();
                                 out.push_str(&format!("{}| {{ {}: {} }}\n",
                                                       self.formatter.get_indentation(),
                                                       strip_rust_prefix(var.name()),
@@ -293,40 +362,131 @@ impl<'t> TsExporter<'t> {
                             }
                             else {
                                 out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
-                                self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                                for (n, field) in ir.fields.iter().enumerate() {
-                                    if n > 0 {
-                                        out.push_str(&format!(", "));
-                                    }
-                                    #[cfg(feature = "comments")]
-                                    if let Some(doc) = field.docs {
-                                        out.push_str(&format!("/** {doc} */ "));
-                                    }
-                                    out.push_str(&format!("{}", self.get_field_name(field.ty.id)));
-                                }
+                                self.format_enum_tuple_fields(out, &vir.fields);
 
-                                // struct variant tail
-                                self.formatter.depth.fetch_sub(2, Ordering::Relaxed);
                                 out.push_str(&format!("] }}\n"));
                             }
+
                         }
-                        IrEnumVariant::Unit(ir) => {
-                            #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
-                                out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                        EnumRepr::Untagged => {
+                            out.push_str(&format!("{}| {}",
+                                                  self.formatter.get_indentation(),
+                                                  if compact { "" } else { "[" },
+                            ));
+
+                            self.format_enum_tuple_fields(out, &vir.fields);
+
+                            out.push_str(&format!("{}\n", if compact { "" } else { "]" }));
+                        }
+                        EnumRepr::Adjacent { tag, content } => {
+                            out.push_str(&format!("{}| {{{}",
+                                                  self.formatter.get_indentation(),
+                                                  if compact { "" } else { "\n" },
+                            ));
+                            self.formatter.depth.fetch_add(2, Ordering::Relaxed);
+
+                            out.push_str(&format!("{}{}: \"{}\",{}",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                                                  strip_rust_prefix(tag),
+                                                  strip_rust_prefix(var.name()),
+                                                  if compact { "" } else { "\n" },
+                            ));
+
+                            out.push_str(&format!("{}{}: {}",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() },
+                                                  strip_rust_prefix(content),
+                                                  if compact { "" } else { "[" },
+                            ));
+
+                            self.formatter.depth.fetch_add(1, Ordering::Relaxed);
+                            self.format_enum_tuple_fields(out, &vir.fields);
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+
+                            if !compact {
+                                out.push_str("],\n");
+
                             }
-                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name())));
+
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                            out.push_str(&format!("{}}}\n",
+                                                  if compact { Cow::from(" ") } else { self.formatter.get_indentation() }
+                            ));
+                            self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
+                        }
+                        /// Possible through user-crafted IR, but will never be generated by the derive macro we expect you to use
+                        EnumRepr::Internal(_) => unreachable!(),
+                    }
+                }
+                IrEnumVariant::Unit(vir) => {
+                    #[cfg(feature = "comments")]
+                    if let Some(doc) = vir.docs {
+                        out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                    }
+
+                    match repr {
+                        EnumRepr::External => {
+                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
+                        }
+                        EnumRepr::Untagged => {
+                            // todo: fix this, it is probably incorrect
+                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
+                        }
+                        EnumRepr::Internal(tag) => {
+                            out.push_str(&format!("{}| {{ {}: \"{}\" }}\n", self.formatter.get_indentation(), tag, strip_rust_prefix(var.name())));
+                        }
+                        EnumRepr::Adjacent { tag, .. } => {
+                            // todo: fix this, it may be incorrect
+                            out.push_str(&format!("{}| {{ {}: \"{}\" }}\n", self.formatter.get_indentation(), tag, strip_rust_prefix(var.name())));
                         }
                     }
                 }
-
-                // enum tail
-                self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
-                out.push_str(&format!(";"));
             }
         }
-        out
+    }
+
+    fn format_enum_struct_fields(&self, out: &mut String, compact: bool, fields: &[IrNamedField]) {
+        for (n, field) in fields.iter().enumerate() {
+            if compact {
+                if n > 0 {
+                    out.push_str(&format!(", "));
+                }
+                #[cfg(feature = "comments")]
+                if let Some(doc) = field.docs {
+                    out.push_str(&format!("/** {doc} */ "));
+                }
+                out.push_str(&format!("{}{}: {}",
+                                      strip_rust_prefix(field.name()),
+                                      if field.ty.optional { "?" } else { "" },
+                                      self.get_field_name(field.ty.id)
+                ));
+            }
+            else {
+                #[cfg(feature = "comments")]
+                if let Some(doc) = field.docs {
+                    out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
+                }
+                out.push_str(&format!("{}{}{}: {},\n",
+                                      self.formatter.get_indentation(),
+                                      strip_rust_prefix(field.name()),
+                                      if field.ty.optional { "?" } else { "" },
+                                      self.get_field_name(field.ty.id)
+                ));
+            }
+        }
+    }
+
+    fn format_enum_tuple_fields(&self, out: &mut String, fields: &[IrUnnamedField]) {
+        for (n, field) in fields.iter().enumerate() {
+            if n > 0 {
+                out.push_str(&format!(", "));
+            }
+            #[cfg(feature = "comments")]
+            if let Some(doc) = field.docs {
+                out.push_str(&format!("/** {doc} */ "));
+            }
+            out.push_str(&format!("{}", self.get_field_name(field.ty.id)));
+        }
     }
 
     fn get_field_name(&self, id: TypeId) -> String {

@@ -1,3 +1,5 @@
+#[path = "ir/attr.rs"]
+mod attr;
 #[path = "ir/enum.rs"]
 mod r#enum;
 #[path = "ir/field.rs"]
@@ -9,6 +11,7 @@ mod r#mod;
 #[path = "ir/struct.rs"]
 mod r#struct;
 
+pub use attr::*;
 pub use r#enum::*;
 pub use field::*;
 pub use item::*;
