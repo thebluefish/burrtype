@@ -7,24 +7,24 @@ pub use meta::BurrMeta;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{Attribute, DataEnum, Fields, FieldsNamed, FieldsUnnamed, Variant};
-use inflector::Inflector;
 
+#[cfg(feature = "auto_register")]
 pub fn auto_registration_fn(name: Ident) -> TokenStream {
+    use inflector::Inflector;
 
-    #[cfg(feature = "auto_register")]
-    {
-        let fn_name = quote::format_ident!("burr_add_{}_type_registration", name.to_string().to_snake_case());
-            quote! {
-            #[burrtype::linkme::distributed_slice(burrtype::TYPES)]
-            #[linkme(crate = burrtype::linkme)]
-            #[doc(hidden)]
-            fn #fn_name() -> burrtype::ir::IrItem {
-                <#name as burrtype::ir::IrExt>::get_ir()
-            }
+    let fn_name = quote::format_ident!("burr_add_{}_type_registration", name.to_string().to_snake_case());
+        quote! {
+        #[burrtype::linkme::distributed_slice(burrtype::TYPES)]
+        #[linkme(crate = burrtype::linkme)]
+        #[doc(hidden)]
+        fn #fn_name() -> burrtype::ir::IrItem {
+            <#name as burrtype::ir::IrExt>::get_ir()
         }
     }
+}
 
-    #[cfg(not(feature = "auto_register"))]
+#[cfg(not(feature = "auto_register"))]
+pub fn auto_registration_fn(_name: Ident) -> TokenStream {
     quote!()
 }
 
