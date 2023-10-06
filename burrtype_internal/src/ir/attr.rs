@@ -1,8 +1,6 @@
 use inflector::Inflector;
-use proc_macro2::{Ident, Literal, Span, TokenStream};
-use quote::{quote, TokenStreamExt, ToTokens};
-use syn::spanned::Spanned;
-use syn::Token;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{quote, ToTokens};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum CaseConvention {

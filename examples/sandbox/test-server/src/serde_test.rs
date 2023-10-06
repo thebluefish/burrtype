@@ -1,12 +1,10 @@
-use super::post_type;
+use crate::post_echo;
+use sandbox::Foo;
+use sandbox::inner::bar::DeepTupleStruct;
+use sandbox::inner::TupleStruct;
 use sandbox::serde_test::*;
 use axum::{Json, Router};
 use axum::routing::get;
-use rust_decimal::Decimal;
-use sandbox::Foo;
-use sandbox::inner::bar::DeepTupleStruct;
-use sandbox::inner::{PhantomType, Things, TupleStruct};
-use crate::post_echo;
 
 pub fn setup(router: Router) -> Router {
     router

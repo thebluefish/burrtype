@@ -6,9 +6,8 @@ pub use meta::BurrMeta;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Attribute, DataEnum, Expr, Fields, FieldsNamed, FieldsUnnamed, Lit, LitStr, parse_quote, Token, Variant};
+use syn::{Attribute, DataEnum, Fields, FieldsNamed, FieldsUnnamed, Variant};
 use inflector::Inflector;
-use syn::punctuated::Punctuated;
 
 pub fn auto_registration_fn(name: Ident) -> TokenStream {
 

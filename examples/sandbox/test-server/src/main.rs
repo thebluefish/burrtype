@@ -21,6 +21,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/enum_big_struct", get(get_enum_big_struct).post(post_echo::<Enum>))
     ;
 
+    let app = serde_test::setup(app);
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     println!("listening on {}", addr);
@@ -30,10 +32,6 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     Ok(())
-}
-
-async fn post_type<T: std::fmt::Debug>(Json(input): Json<T>) {
-    println!("got {input:#?}");
 }
 
 async fn post_echo<T: std::fmt::Debug>(input: Json<T>) -> Json<T> {

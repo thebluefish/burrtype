@@ -1,9 +1,10 @@
 import {Bar, Enum, UnitStruct} from "./api/things"
 import axios, {AxiosError} from "axios"
-import {DeepTupleStruct} from "./api/deep";
-import {Foo} from "./api/common";
-import {NamedStruct, TupleStruct} from "./api/types";
+import {DeepTupleStruct} from "./api/deep"
+import {Foo} from "./api/common"
+import {NamedStruct, TupleStruct} from "./api/types"
 import {assert_eq} from "./util"
+import serde_test from "./serde_test"
 
 let client = axios.create({
     baseURL: 'http://127.0.0.1:3000',
@@ -33,6 +34,7 @@ async function run_all() {
     await enum_tiny_tuple()
     await enum_unit()
     await enum_big_struct()
+    await serde_test(client)
 }
 
 async function foo() {

@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
-use syn::{Expr, MetaList, MetaNameValue, Path, Token, token};
+use syn::{Expr, MetaList, Path, Token, token};
 use syn::ext::IdentExt;
 use syn::parse::{Parse, ParseStream};
 
