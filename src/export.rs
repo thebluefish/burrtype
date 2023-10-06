@@ -82,15 +82,36 @@ impl Burrxporter {
                 importing.extend(om.pull_fields());
             }
 
+            let mut touched_mods = Vec::new();
+            let mut diff = Vec::new();
             for id in importing.difference(&exporting) {
                 // todo: consider handling the None case
                 // None usually means we have encountered a builtin such as usize or String, but might not always
-                if let Some(tr) = self.type_registry.get(id) {
-                    let path = tr.mod_override().unwrap_or(default);
-                    if let Some(bm) = get_or_create_mod(&mut self.mods, Path::new(path)) {
-                        bm.types.insert(id.clone(), tr.clone());
+                if let Some(ir) = self.type_registry.get(id) {
+                    diff.push((ir.clone(), ir.mod_override().unwrap_or(default)));
+                }
+            }
+            diff.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+            for (ir, path) in diff {
+                if let Some((bm, auto)) = get_or_create_mod(&mut self.mods, Path::new(path)) {
+                    bm.auto_exports.push(ir.type_id());
+                    bm.types.insert(ir.type_id(), ir);
+                    if auto {
+                        touched_mods.push(Path::new(path));
                     }
                 }
+            }
+
+            for path in touched_mods {
+                let (tm, auto) = get_or_create_mod(&mut self.mods, path).unwrap();
+                assert!(!auto);
+
+                tm.auto_exports.sort_by(|a, b| {
+                    let a = tm.types.get(a).unwrap().name();
+                    let b = tm.types.get(b).unwrap().name();
+                    a.cmp(&b)
+                });
             }
         }
         self
@@ -117,7 +138,9 @@ impl Burrxporter {
 
 /// Gets a module at the specified path, or creates the necessary module tree as needed
 /// todo: convert the return type to a more descriptive error type when we are ready to reorganize things for error handling
-fn get_or_create_mod<'m, 'p>(mods: &'m mut Vec<BurrMod>, path: &'p Path) -> Option<&'m mut BurrMod> {
+fn get_or_create_mod<'m, 'p>(mods: &'m mut Vec<BurrMod>, path: &'p Path) -> Option<(&'m mut BurrMod, bool)> {
+    let mut created = false;
+
     if path.components().count() == 0 {
         return None;
     }
@@ -131,6 +154,7 @@ fn get_or_create_mod<'m, 'p>(mods: &'m mut Vec<BurrMod>, path: &'p Path) -> Opti
         &mut mods[pos]
     }
     else {
+        created = true;
         mods.push(BurrMod::new(cname.to_owned()));
         mods.last_mut().unwrap()
     };
@@ -142,10 +166,11 @@ fn get_or_create_mod<'m, 'p>(mods: &'m mut Vec<BurrMod>, path: &'p Path) -> Opti
             &mut search.children[pos]
         }
         else {
+            created = true;
             search.children.push(BurrMod::new(cname.to_owned()));
             search.children.last_mut().unwrap()
         };
     }
 
-    Some(search)
+    Some((search, created))
 }

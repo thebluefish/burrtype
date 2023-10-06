@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
         // Root can provide a common output location for future exports
         // todo: Ensure absolute paths and relative paths beginning with an explicit dot don't get the root added
         .with_root("out/api")
-        .export("api", TypeScript::new()
+        .export("ts", TypeScript::new()
             // Currently it's a bit boilerplate-y to setup multiple targets
             // todo: Make Typescript Clone? Needs rework of Formatter
             .with_type_name::<rust_decimal::Decimal>("number")

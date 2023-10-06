@@ -1,6 +1,8 @@
 import { NamedStruct, TupleStruct } from './types'
-import { Things, Stuff, Foo } from './common'
+import { Foo, Stuff, Things } from './common'
 import { DeepTupleStruct } from './deep'
+
+export type Bar = Foo
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
@@ -24,8 +26,6 @@ export type Enum =
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
 
-export type Bar = Foo
-
 export interface RenamedStruct {
   FOO: Stuff,
   optional?: Foo,
@@ -34,6 +34,23 @@ Even below when this field is substituted in using #[serde(flatten)] */
   one: number,
   two: string,
 }
+
+/** An enum's variants correlate with struct variants */
+export type InternallyTaggedEnum =
+  | { type: "Struct", foo: Foo, bar: string }
+  | { type: "Unit" }
+  | {
+      type: "BigStruct",
+      /** comments work at all levels
+Even below when this field is substituted in using #[serde(flatten)] */
+      one: number,
+      two: string,
+      /** It doesn't matter where types are, we can reference them */
+      THREE: DeepTupleStruct,
+      FOUR?: RenamedStruct,
+      six: TupleStruct,
+    }
+;
 
 /** An enum's variants correlate with struct variants */
 export type AdjacentlyTaggedEnum =
@@ -65,23 +82,6 @@ So we place more specific cases before general ones */
   | [Stuff, Stuff]
   /** Bigger structs can expand to a better format */
   | {
-      THREE: DeepTupleStruct,
-      FOUR?: RenamedStruct,
-      six: TupleStruct,
-    }
-;
-
-/** An enum's variants correlate with struct variants */
-export type InternallyTaggedEnum =
-  | { type: "Struct", foo: Foo, bar: string }
-  | { type: "Unit" }
-  | {
-      type: "BigStruct",
-      /** comments work at all levels
-Even below when this field is substituted in using #[serde(flatten)] */
-      one: number,
-      two: string,
-      /** It doesn't matter where types are, we can reference them */
       THREE: DeepTupleStruct,
       FOUR?: RenamedStruct,
       six: TupleStruct,
