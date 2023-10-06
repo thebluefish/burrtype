@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/thebluefish/burrtype"
 
 [features]
-default = ["serde_compat"]
+default = []
 docs = ["burrtype_internal/docs"]
 auto_register = []
 serde_compat = []
