@@ -4,6 +4,7 @@ use burrtype::prelude::*;
 /// A named struct is defined by braces and fields with named
 pub struct Foo {
     /// comments work at all levels
+    /// Even below when this field is substituted in using #[serde(flatten)]
     pub one: u32,
     pub two: String,
 }
@@ -44,6 +45,8 @@ pub mod inner {
         /// We need to support optional fields, too
         #[serde(rename = "optional")]
         pub opt: Option<super::Foo>,
+        #[serde(flatten)]
+        pub more: super::Foo,
     }
 
     /// A tuple struct is defined by parenthesis and only types
@@ -73,6 +76,8 @@ pub mod inner {
             foo: super::Foo,
             bar: String,
         },
+        #[serde(skip)]
+        HiddenTuple(String, String, String),
         TinyTuple(String),
         /// A tuple variant is defined by parenthesis and only types
         Tuple(
@@ -84,12 +89,14 @@ pub mod inner {
         Unit,
         /// Bigger structs can expand to a better format
         BigStruct {
+            // This works in theory, but needs <https://github.com/serde-rs/serde/pull/2567>
+            // #[serde(flatten)]
+            // more: super::Foo,
             /// It doesn't matter where types are, we can reference them
-            one: bar::DeepTupleStruct,
-            two: Option<NamedStruct>,
-            #[serde(rename = "five")]
-            three: TupleStruct,
-            four: super::Foo,
+            three: bar::DeepTupleStruct,
+            four: Option<NamedStruct>,
+            #[serde(rename = "six")]
+            five: TupleStruct,
         },
     }
 }

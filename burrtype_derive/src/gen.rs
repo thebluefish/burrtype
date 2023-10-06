@@ -44,7 +44,15 @@ pub fn named_struct_ir(
                     let st = if ir.ignore {
                         quote!()
                     } else if ir.flatten {
-                        quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
+                        quote! {
+                            let persona = <#ty as burrtype::ir::IrExt>::get_ir();
+                            if let burrtype::ir::IrItem::NamedStruct(inner) = persona {
+                                fields.extend(inner.fields);
+                            }
+                            else {
+                                panic!("attempted to flatten an invalid type");
+                            }
+                        }
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);
@@ -183,6 +191,10 @@ pub fn enum_ir(
     let variant_frags = data.variants.into_iter().map(|var| {
         let Variant { attrs, ident, fields, .. } = var;
 
+        if attrs::variant::serde_skip(&attrs) {
+            return quote!()
+        }
+
         if var.discriminant.is_some() {
             panic!("Enums with discriminants are unsupported");
         }
@@ -234,7 +246,15 @@ fn enum_struct_variant_ir(
                     let st = if ir.ignore {
                         quote!()
                     } else if ir.flatten {
-                        quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
+                        quote! {
+                            let persona = <#ty as burrtype::ir::IrExt>::get_ir();
+                            if let burrtype::ir::IrItem::NamedStruct(inner) = persona {
+                                fields.extend(inner.fields);
+                            }
+                            else {
+                                panic!("attempted to flatten an invalid type");
+                            }
+                        }
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);

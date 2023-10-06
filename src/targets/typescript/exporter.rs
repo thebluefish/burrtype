@@ -270,7 +270,7 @@ impl<'t> TsExporter<'t> {
                                 out.push_str(&format!(" }}}}\n"));
                             }
                             else {
-                                out.push_str(&format!("{}}} }}\n", self.formatter.get_indentation()));
+                                out.push_str(&format!("{}}}}}\n", self.formatter.get_indentation()));
                             }
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                         }

@@ -52,6 +52,25 @@ pub fn named_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
 
     // parse attributes
     for attr in &field.attrs {
+        #[cfg(feature = "serde_compat")]
+        if attr.path().is_ident("serde") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
+                Ok(items) => {
+                    for meta in items {
+                        match meta {
+                            BurrMeta::Path(path) if path.is_ident("skip") => {
+                                ignore = true;
+                            }
+                            BurrMeta::Path(path) if path.is_ident("flatten") => {
+                                flatten = true;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Err(err) => return Err(err.into_compile_error()),
+            }
+        }
         if attr.path().is_ident("burr") {
             match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
                 Ok(items) => {
@@ -97,6 +116,22 @@ pub fn unnamed_field_attrs(field: &Field) -> Result<FlaggedField, TokenStream> {
 
     // parse attributes
     for attr in &field.attrs {
+        #[cfg(feature = "serde_compat")]
+        if attr.path().is_ident("serde") {
+            match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
+                Ok(items) => {
+                    for meta in items {
+                        match meta {
+                            BurrMeta::Path(path) if path.is_ident("skip") => {
+                                ignore = true;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Err(err) => return Err(err.into_compile_error()),
+            }
+        }
         if attr.path().is_ident("burr") {
             match attr.parse_args_with(Punctuated::<BurrMeta, Token![,]>::parse_terminated) {
                 Ok(items) => {
