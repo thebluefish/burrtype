@@ -16,10 +16,14 @@ pub struct TsFile {
 
 impl From<BurrMod> for TsFile {
     fn from(value: BurrMod) -> Self {
+        let mut items = Vec::new();
+        items.extend(value.exports.iter().map(|id| value.types.get(id).unwrap().clone()));
+        items.extend(value.auto_exports.iter().map(|id| value.types.get(id).unwrap().clone()));
+
         TsFile {
             name: value.name.clone(),
             target: PathBuf::from(value.name).with_extension("ts"),
-            items: value.exports.iter().map(|id| value.types.get(id).unwrap().clone()).collect(),
+            items,
             mods: value.children,
         }
     }

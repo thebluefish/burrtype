@@ -62,7 +62,7 @@ impl<'t> TsExporter<'t> {
             }
             // remove self-references
             import_map.remove(&file.target);
-            let import_map: Vec<(PathBuf, HashSet<TypeId>)> = import_map.into_iter().collect();
+            // let import_map: Vec<(PathBuf, HashSet<TypeId>)> = import_map.into_iter().collect();
 
             // iterate imports and write them
             // for (import, types) in &import_map {

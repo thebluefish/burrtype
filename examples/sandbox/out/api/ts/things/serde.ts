@@ -1,3 +1,7 @@
+import { DeepTupleStruct } from '../deep/types'
+import { Foo, Stuff } from '../common'
+import { TupleStruct } from '../types'
+
 export interface RenamedStruct {
   FOO: Stuff,
   optional?: Foo,

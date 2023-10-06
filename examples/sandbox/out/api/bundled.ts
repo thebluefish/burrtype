@@ -84,19 +84,6 @@ So we place more specific cases before general ones */
     }
 ;
 
-export interface NamedStruct {
-  /** Type alias allows us to treat one type like another
-Here we treat a newtype like its known inner type */
-  foo: number,
-  /** Rust reserved keywords should resolve properly for other languages */
-  ty: number,
-  /** We need to support optional fields, too */
-  opt?: Foo,
-}
-
-/** A tuple struct is defined by parenthesis and only types */
-export type TupleStruct = [number, Foo]
-
 /** A named struct is defined by braces and fields with named */
 export interface Foo {
   /** comments work at all levels
@@ -119,3 +106,16 @@ export type Things =
 /** We can assign a module at the type level */
 /** Why do we care about such things */
 export type DeepTupleStruct = number
+
+export interface NamedStruct {
+  /** Type alias allows us to treat one type like another
+Here we treat a newtype like its known inner type */
+  foo: number,
+  /** Rust reserved keywords should resolve properly for other languages */
+  ty: number,
+  /** We need to support optional fields, too */
+  opt?: Foo,
+}
+
+/** A tuple struct is defined by parenthesis and only types */
+export type TupleStruct = [number, Foo]

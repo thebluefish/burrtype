@@ -1,3 +1,5 @@
+import { NamedStruct, TupleStruct } from './types'
+import { Foo, Stuff, Things } from './common'
 import { DeepTupleStruct } from './deep'
 
 export type Bar = Foo
