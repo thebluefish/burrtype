@@ -78,17 +78,17 @@ pub mod inner {
             foo: super::Foo,
             bar: String,
         },
-        #[serde(skip)]
-        HiddenTuple(String, String, String),
-        TinyTuple(String),
-        /// A tuple variant is defined by parenthesis and only types
-        Tuple(
-            /// Comments give meaning to these nameless types
-            Things,
-            Things,
-        ),
-        /// A unit variant has no shape nor fields
-        Unit,
+        // #[serde(skip)]
+        // HiddenTuple(String, String, String),
+        // TinyTuple(String),
+        // /// A tuple variant is defined by parenthesis and only types
+        // Tuple(
+        //     /// Comments give meaning to these nameless types
+        //     Things,
+        //     Things,
+        // ),
+        // /// A unit variant has no shape nor fields
+        // Unit,
         /// Bigger structs can expand to a better format
         #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         BigStruct {

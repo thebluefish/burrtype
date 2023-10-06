@@ -49,15 +49,7 @@ pub fn named_struct_ir(
                     let st = if ir.ignore {
                         quote!()
                     } else if ir.flatten {
-                        quote! {
-                            let persona = <#ty as burrtype::ir::IrExt>::get_ir();
-                            if let burrtype::ir::IrItem::NamedStruct(inner) = persona {
-                                fields.extend(inner.fields);
-                            }
-                            else {
-                                panic!("attempted to flatten an invalid type");
-                            }
-                        }
+                        quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);
@@ -83,7 +75,23 @@ pub fn named_struct_ir(
         })
         .collect::<Vec<_>>();
 
+    let field_map_frag = quote! {
+        let mut fields = Vec::<burrtype::ir::IrNamedField>::new();
+        #( #field_impls )*
+        fields
+    };
+
+    let impl_ext_frag = quote! {
+            impl burrtype::ir::NamedStructExt for #name {
+                fn fields() -> Vec<burrtype::ir::IrNamedField> {
+                    #field_map_frag
+                }
+            }
+        };
+
     quote! {
+        #impl_ext_frag
+
         impl burrtype::ir::IrExt for #name {
             fn get_ir() -> burrtype::ir::IrItem {
                 let mut fields = Vec::<burrtype::ir::IrNamedField>::new();
@@ -251,15 +259,7 @@ fn enum_struct_variant_ir(
                     let st = if ir.ignore {
                         quote!()
                     } else if ir.flatten {
-                        quote! {
-                            let persona = <#ty as burrtype::ir::IrExt>::get_ir();
-                            if let burrtype::ir::IrItem::NamedStruct(inner) = persona {
-                                fields.extend(inner.fields);
-                            }
-                            else {
-                                panic!("attempted to flatten an invalid type");
-                            }
-                        }
+                        quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);
