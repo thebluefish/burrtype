@@ -1,34 +1,30 @@
-export type Bar = Foo
-
 /** A unit struct has no shape nor fields */
 export type UnitStruct = null
 
 /** An enum's variants correlate with struct variants */
 export type Enum =
   /** A struct variant is defined by braces and fields with named */
-  | { Struct: { /** An inline comment */ foo: Foo, bar: string }}
-  | { TinyTuple: string }
+  | { struct: { /** An inline comment */ foo: Foo, bar: string }}
+  | { tiny_tuple: string }
   /** A tuple variant is defined by parenthesis and only types */
-  | { Tuple: [/** Give some meaning to these nameless types */ Things, Things] }
+  | { tuple: [/** Comments give meaning to these nameless types */ Things, Things] }
   /** A unit variant has no shape nor fields */
-  | "Unit"
+  | "unit"
   /** Bigger structs can expand to a better format */
-  | { BigStruct: {
+  | { big_struct: {
       /** It doesn't matter where types are, we can reference them */
-      three: DeepTupleStruct,
-      four?: RenamedStruct,
+      THREE: DeepTupleStruct,
+      FOUR?: RenamedStruct,
       six: TupleStruct,
     }}
 ;
 
-/** We can assign a module at the type level */
-/** Why do we care about such things */
-export type DeepTupleStruct = number
+export type Bar = Foo
 
 /** The simplest enum of all unit types */
 export type Things =
-  | "One"
-  | "Two"
+  | "one"
+  | "two"
 ;
 
 /** A named struct is defined by braces and fields with named */
@@ -39,17 +35,21 @@ Even below when this field is substituted in using #[serde(flatten)] */
   two: string,
 }
 
+/** We can assign a module at the type level */
+/** Why do we care about such things */
+export type DeepTupleStruct = number
+
 /** A tuple struct is defined by parenthesis and only types */
 export type TupleStruct = [number, Foo]
 
 export interface RenamedStruct {
   /** Type alias allows us to treat one type like another
 Here we treat a newtype like its known inner type */
-  foo: number,
+  FOO: number,
   /** Rust reserved keywords should resolve properly for other languages */
-  type: number,
+  ty: number,
   /** We need to support optional fields, too */
-  optional?: Foo,
+  opt?: Foo,
   /** comments work at all levels
 Even below when this field is substituted in using #[serde(flatten)] */
   one: number,

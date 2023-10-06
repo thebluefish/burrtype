@@ -34,6 +34,11 @@ pub fn named_struct_ir(
     name: Ident,
     fields: FieldsNamed,
 ) -> TokenStream {
+    let ir_docs = attrs::docs(&attrs);
+    let module = attrs::container::burr_mod(&attrs);
+    let ident = attrs::serde_rename(&attrs, &name);
+    let case = attrs::serde_rename_all(&attrs);
+
     // Collect fragments for each field that inserts the field's IR
     let field_impls = fields.named.iter()
         .map(|field| {
@@ -56,6 +61,7 @@ pub fn named_struct_ir(
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);
+                        let name = Ident::new_raw(&case.transform(&name.to_string()), name.span());
                         let ident = attrs::serde_rename(&field.attrs, &name);
 
                         quote! {
@@ -77,11 +83,6 @@ pub fn named_struct_ir(
         })
         .collect::<Vec<_>>();
 
-    let ir_docs = attrs::docs(&attrs);
-    let module = attrs::container::burr_mod(&attrs);
-    let ident = attrs::serde_rename(&attrs, &name);
-    let case = attrs::serde_rename_all(&attrs);
-
     quote! {
         impl burrtype::ir::IrExt for #name {
             fn get_ir() -> burrtype::ir::IrItem {
@@ -93,7 +94,6 @@ pub fn named_struct_ir(
                     id: std::any::TypeId::of::<#name>(),
                     fields,
                     r#mod: #module,
-                    case: burrtype::ir::#case,
                     #ir_docs
 
                 }.into()
@@ -107,6 +107,10 @@ pub fn tuple_struct_ir(
     name: Ident,
     fields: FieldsUnnamed
 ) -> TokenStream {
+    let ir_docs = attrs::docs(&attrs);
+    let module = attrs::container::burr_mod(&attrs);
+    let ident = attrs::serde_rename(&attrs, &name);
+
     // Collect fragments for each field that describes the field's IR
     let field_ir = fields.unnamed.iter()
         .map(|field| {
@@ -140,10 +144,6 @@ pub fn tuple_struct_ir(
             }
         })
         .collect::<Vec<_>>();
-
-    let ir_docs = attrs::docs(&attrs);
-    let module = attrs::container::burr_mod(&attrs);
-    let ident = attrs::serde_rename(&attrs, &name);
 
     quote! {
         impl burrtype::ir::IrExt for #name {
@@ -187,6 +187,11 @@ pub fn enum_ir(
     name: Ident,
     data: DataEnum
 ) -> TokenStream {
+    let ir_docs = attrs::docs(&attrs);
+    let module = attrs::container::burr_mod(&attrs);
+    let ident = attrs::serde_rename(&attrs, &name);
+    let case = attrs::serde_rename_all(&attrs);
+
     // Collect fragments for each variant that describes the variant's IR
     let variant_frags = data.variants.into_iter().map(|var| {
         let Variant { attrs, ident, fields, .. } = var;
@@ -199,6 +204,8 @@ pub fn enum_ir(
             panic!("Enums with discriminants are unsupported");
         }
 
+        let ident = Ident::new_raw(&case.transform(&ident.to_string()), ident.span());
+
         match fields {
             Fields::Named(inner) => enum_struct_variant_ir(attrs, ident, inner),
             Fields::Unnamed(inner) => enum_tuple_variant_ir(attrs, ident, inner),
@@ -206,11 +213,6 @@ pub fn enum_ir(
         }
     })
     .collect::<Vec<_>>();
-
-    let ir_docs = attrs::docs(&attrs);
-    let module = attrs::container::burr_mod(&attrs);
-    let ident = attrs::serde_rename(&attrs, &name);
-    let case = attrs::serde_rename_all(&attrs);
 
     quote! {
         impl burrtype::ir::IrExt for #name {
@@ -223,7 +225,6 @@ pub fn enum_ir(
                     id: std::any::TypeId::of::<#name>(),
                     variants,
                     r#mod: #module,
-                    case: burrtype::ir::#case,
                     #ir_docs
                 }.into()
             }
@@ -236,6 +237,10 @@ fn enum_struct_variant_ir(
     name: Ident,
     fields: FieldsNamed,
 ) -> TokenStream {
+    let ir_docs = attrs::docs(&attrs);
+    let ident = attrs::serde_rename(&attrs, &name);
+    let case = attrs::serde_rename_all(&attrs);
+
     // Collect fragments for each field that inserts the field's IR
     let field_impls = fields.named.iter()
         .map(|field| {
@@ -258,6 +263,7 @@ fn enum_struct_variant_ir(
                     } else {
                         let (ty, optional) = parse::option(ty);
                         let field_docs = attrs::docs(&field.attrs);
+                        let name = Ident::new_raw(&case.transform(&name.to_string()), name.span());
                         let ident = attrs::serde_rename(&field.attrs, &name);
 
                         quote! {
@@ -279,10 +285,6 @@ fn enum_struct_variant_ir(
         })
         .collect::<Vec<_>>();
 
-    let ir_docs = attrs::docs(&attrs);
-    let ident = attrs::serde_rename(&attrs, &name);
-    let case = attrs::serde_rename_all(&attrs);
-
     quote! {
         let mut fields = Vec::<burrtype::ir::IrNamedField>::new();
         #( #field_impls )*
@@ -290,7 +292,6 @@ fn enum_struct_variant_ir(
         variants.push(burrtype::ir::IrEnumStructVariant {
             ident: burrtype::syn::parse_quote!(#ident),
             fields,
-            case: burrtype::ir::#case,
             #ir_docs
         }.into());
     }

@@ -10,7 +10,7 @@ repository = "https://github.com/thebluefish/burrtype"
 default = ["serde_compat"]
 docs = ["burrtype_internal/docs"]
 auto_register = []
-serde_compat = ["burrtype_internal/serde_compat"]
+serde_compat = []
 
 [lib]
 name = "burrtype_derive"

@@ -1,7 +1,7 @@
 /** The simplest enum of all unit types */
 export type Things =
-  | "One"
-  | "Two"
+  | "one"
+  | "two"
 ;
 
 /** A named struct is defined by braces and fields with named */

@@ -7,9 +7,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/thebluefish/burrtype"
 
 [features]
-default = ["serde_compat"]
+default = []
 docs = []
-serde_compat = []
 
 [dependencies]
 proc-macro2 = "1.0"

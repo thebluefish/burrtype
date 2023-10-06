@@ -220,12 +220,12 @@ impl<'t> TsExporter<'t> {
 
                 for var in &ir.variants {
                     match var {
-                        IrEnumVariant::Struct(ir) => {
+                        IrEnumVariant::Struct(vir) => {
                             #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
+                            if let Some(doc) = vir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            let compact = self.formatter.compact_enum.map(|n| ir.fields.len() <= n).unwrap_or(false);
+                            let compact = self.formatter.compact_enum.map(|n| vir.fields.len() <= n).unwrap_or(false);
                             // struct variant head
                             if compact {
                                 out.push_str(&format!("{}| {{ {}: {{ ", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
@@ -235,7 +235,7 @@ impl<'t> TsExporter<'t> {
                             }
                             self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                            for (n, field) in ir.fields.iter().enumerate() {
+                            for (n, field) in vir.fields.iter().enumerate() {
                                 if compact {
                                     if n > 0 {
                                         out.push_str(&format!(", "));
@@ -274,13 +274,13 @@ impl<'t> TsExporter<'t> {
                             }
                             self.formatter.depth.fetch_sub(1, Ordering::Relaxed);
                         }
-                        IrEnumVariant::Tuple(ir) => {
+                        IrEnumVariant::Tuple(vir) => {
                             #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
+                            if let Some(doc) = vir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            if ir.fields.len() == 1 {
-                                let field = ir.fields.first().unwrap();
+                            if vir.fields.len() == 1 {
+                                let field = vir.fields.first().unwrap();
                                 #[cfg(feature = "comments")]
                                 if let Some(doc) = field.docs {
                                     out.push_str(&format!("/** {doc} */ "));
@@ -295,7 +295,7 @@ impl<'t> TsExporter<'t> {
                                 out.push_str(&format!("{}| {{ {}: [", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
                                 self.formatter.depth.fetch_add(2, Ordering::Relaxed);
 
-                                for (n, field) in ir.fields.iter().enumerate() {
+                                for (n, field) in vir.fields.iter().enumerate() {
                                     if n > 0 {
                                         out.push_str(&format!(", "));
                                     }
@@ -311,12 +311,12 @@ impl<'t> TsExporter<'t> {
                                 out.push_str(&format!("] }}\n"));
                             }
                         }
-                        IrEnumVariant::Unit(ir) => {
+                        IrEnumVariant::Unit(vir) => {
                             #[cfg(feature = "comments")]
-                            if let Some(doc) = ir.docs {
+                            if let Some(doc) = vir.docs {
                                 out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                             }
-                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(ir.name())));
+                            out.push_str(&format!("{}| \"{}\"\n", self.formatter.get_indentation(), strip_rust_prefix(var.name())));
                         }
                     }
                 }

@@ -2,7 +2,7 @@ import {Bar, Enum, UnitStruct} from "./api/things"
 import axios, {AxiosError} from "axios"
 import {DeepTupleStruct} from "./api/deep";
 import {Foo} from "./api/common";
-import {NamedStruct, TupleStruct} from "./api/types";
+import {RenamedStruct, TupleStruct} from "./api/types";
 
 let client = axios.create({
     baseURL: 'http://127.0.0.1:3000',
@@ -62,12 +62,14 @@ async function deep_tuple_struct() {
 }
 
 async function named_struct() {
-    let result = await client.get<NamedStruct>('/named_struct')
+    let result = await client.get<RenamedStruct>('/named_struct')
     console.log("named_struct: ", result.data)
 
-    let data: NamedStruct = {
-        foo: 4,
-        type: 420.69,
+    let data: RenamedStruct = {
+        one: 1,
+        two: "2",
+        FOO: 4,
+        ty: 420.69
     }
 
     await client.post('/named_struct', data)
@@ -96,7 +98,7 @@ async function enum_struct() {
     console.log("enum_struct: ", result.data)
 
     let data: Enum = {
-        Struct: {
+        struct: {
             foo: {
                 one: 4,
                 two: "eight",
@@ -113,7 +115,7 @@ async function enum_tuple() {
     console.log("enum_tuple: ", result.data)
 
     let data: Enum = {
-        Tuple: ["One", "Two"],
+        tuple: ["one", "two"],
     }
 
     await client.post('/enum_tuple', data)
@@ -124,7 +126,7 @@ async function enum_tiny_tuple() {
     console.log("enum_tiny_tuple: ", result.data)
 
     let data: Enum = {
-        TinyTuple: "lol",
+        tiny_tuple: "lol",
     }
 
     await client.post('/enum_tiny_tuple', data)
@@ -134,7 +136,7 @@ async function enum_unit() {
     let result = await client.get('/enum_unit')
     console.log("enum_unit: ", result.data)
 
-    let data: Enum = "Unit"
+    let data: Enum = "unit"
 
     await client.post('/enum_unit', data)
 }
@@ -144,10 +146,11 @@ async function enum_big_struct() {
     console.log("enum_big_struct: ", result.data)
 
     let data: Enum = {
-        BigStruct: {
-            one: 1,
-            three: [3, { one: 6, two: "12" }],
-            four:  { one: 1, two: "2" },
+        big_struct: {
+            // one: 0,
+            // two: "1",
+            THREE: 3,
+            six: [0, {one: 1, two: "2"}],
         }
     }
 

@@ -33,7 +33,6 @@ pub mod inner {
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
     #[burr(mod = "types")]
     #[serde(rename = "RenamedStruct")]
-    // #[serde(rename(serialize = "SameNameAlsoWorks", deserialize = "SameNameAlsoWorks"))]
     #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub struct NamedStruct {
         /// Type alias allows us to treat one type like another
@@ -41,9 +40,10 @@ pub mod inner {
         #[burr(type = u64)]
         pub foo: PhantomType,
         /// Rust reserved keywords should resolve properly for other languages
-        pub r#type: rust_decimal::Decimal,
+        #[serde(rename = "ty")]
+        pub ty: rust_decimal::Decimal,
         /// We need to support optional fields, too
-        #[serde(rename = "optional")]
+        #[serde(rename = "opt")]
         pub opt: Option<super::Foo>,
         #[serde(flatten)]
         pub more: super::Foo,
@@ -61,6 +61,7 @@ pub mod inner {
 
     /// The simplest enum of all unit types
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+    #[serde(rename_all = "lowercase")]
     pub enum Things {
         One,
         Two,
@@ -68,6 +69,7 @@ pub mod inner {
 
     #[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
     #[burr(mod = "types")]
+    #[serde(rename_all = "snake_case")]
     /// An enum's variants correlate with struct variants
     pub enum Enum {
         /// A struct variant is defined by braces and fields with named
@@ -81,15 +83,17 @@ pub mod inner {
         TinyTuple(String),
         /// A tuple variant is defined by parenthesis and only types
         Tuple(
-            /// Give some meaning to these nameless types
+            /// Comments give meaning to these nameless types
             Things,
             Things,
         ),
         /// A unit variant has no shape nor fields
         Unit,
         /// Bigger structs can expand to a better format
+        #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         BigStruct {
             // This works in theory, but needs <https://github.com/serde-rs/serde/pull/2567>
+            // Or comment out non-struct variants when enabling
             // #[serde(flatten)]
             // more: super::Foo,
             /// It doesn't matter where types are, we can reference them

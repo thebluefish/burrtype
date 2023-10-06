@@ -61,11 +61,15 @@ async fn get_deep_tuple_struct() -> Json<DeepTupleStruct> {
 async fn get_named_struct() -> Json<NamedStruct> {
     let data = NamedStruct {
         foo: PhantomType(42),
-        r#type: Decimal::from_str("1.32").unwrap(),
+        ty: Decimal::from_str("1.32").unwrap(),
         opt: Some(Foo {
             one: 1,
             two: "2".to_string(),
         }),
+        more: Foo {
+            one: 3,
+            two: "4".to_string(),
+        },
     };
 
     Json(data)
@@ -115,10 +119,24 @@ async fn get_enum_unit() -> Json<Enum> {
 
 async fn get_enum_big_struct() -> Json<Enum> {
     let data = Enum::BigStruct {
-        one: DeepTupleStruct(4),
-        two: None,
-        three: TupleStruct(0, Foo { one: 16, two: "32".to_string() }),
-        four: Foo { one: 64, two: "128".to_string() },
+        // more: Foo {
+        //     one: 6,
+        //     two: "12".to_string(),
+        // },
+        three: DeepTupleStruct(4),
+        four: Some(NamedStruct {
+            foo: PhantomType(6),
+            ty: Decimal::new(132, 2),
+            opt: None,
+            more: Foo {
+                one: 777,
+                two: "444".to_string(),
+            },
+        }),
+        five: TupleStruct(8, Foo {
+            one: 16,
+            two: "32".to_string(),
+        }),
     };
 
     Json(data)
