@@ -1,13 +1,58 @@
 use super::{ IrNamedField, IrUnnamedField};
 use std::any::TypeId;
 use std::collections::HashSet;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{quote, ToTokens};
+
+#[derive(Clone, Copy, Debug)]
+pub enum EnumRepr {
+    External,
+    Untagged,
+    Internal(&'static str),
+    Adjacent {
+        tag: &'static str,
+        content: &'static str,
+    },
+}
+
+// impl ToTokens for EnumRepr {
+//     fn to_tokens(&self, tokens: &mut TokenStream) {
+//         let name: Ident = Ident::new("EnumRepr", Span::call_site());
+//         match *self {
+//             EnumRepr::External => {
+//                 let repr = Ident::new("External", Span::call_site());
+//                 tokens.extend(quote! {
+//                     #name :: #repr
+//                 })
+//             }
+//             EnumRepr::Untagged => {
+//                 let repr = Ident::new("Untagged", Span::call_site());
+//                 tokens.extend(quote! {
+//                     #name :: #repr
+//                 })
+//             }
+//             EnumRepr::Internal(tag) => {
+//                 let repr = Ident::new("Internal", Span::call_site());
+//                 tokens.extend(quote! {
+//                     #name :: #repr ( #tag )
+//                 })
+//             }
+//             EnumRepr::Adjacent { tag, content } => {
+//                 let repr = Ident::new("Adjacent", Span::call_site());
+//                 tokens.extend(quote! {
+//                     #name :: #repr { tag: #tag, content: #content }
+//                 })
+//             }
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct IrEnum {
     pub ident: Ident,
     pub id: TypeId,
     pub variants: Vec<IrEnumVariant>,
+    pub repr: EnumRepr,
     #[cfg(feature = "docs")]
     pub docs: Option<&'static str>,
     pub r#mod: Option<&'static str>,

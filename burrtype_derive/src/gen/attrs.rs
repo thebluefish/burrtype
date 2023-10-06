@@ -32,7 +32,7 @@ pub fn docs(attrs: &[Attribute]) -> TokenStream {
         let docs = docs.join("\n");
 
         quote! {
-            docs: Some(#docs),
+            docs: Some( #docs ),
         }
     }
 

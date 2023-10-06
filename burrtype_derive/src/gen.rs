@@ -199,6 +199,7 @@ pub fn enum_ir(
     let module = attrs::container::burr_mod(&attrs);
     let ident = attrs::serde_rename(&attrs, &name);
     let case = attrs::serde_rename_all(&attrs);
+    let repr = attrs::container::serde_enum_repr(&attrs);
 
     // Collect fragments for each variant that describes the variant's IR
     let variant_frags = data.variants.into_iter().map(|var| {
@@ -232,6 +233,7 @@ pub fn enum_ir(
                     ident: burrtype::syn::parse_quote!(#ident),
                     id: std::any::TypeId::of::<#name>(),
                     variants,
+                    repr: burrtype::ir::#repr,
                     r#mod: #module,
                     #ir_docs
                 }.into()

@@ -21,6 +21,12 @@ fn main() -> anyhow::Result<()> {
                     .with_type::<inner::UnitStruct>()
                 )
             )
+            .with_mod(BurrMod::new("serde")
+                .with_type::<serde_test::NamedStruct>()
+                .with_type::<serde_test::InternallyTaggedEnum>()
+                .with_type::<serde_test::AdjacentlyTaggedEnum>()
+                .with_type::<serde_test::UntaggedEnum>()
+            )
         )
         // Collects type dependencies not explicitly added
         // Types with `#[burr(mod = "path")]` attributes will have their types added to the given module path, creating the module tree as necessary

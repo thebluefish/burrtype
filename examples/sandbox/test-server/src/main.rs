@@ -1,3 +1,5 @@
+mod serde_test;
+
 use sandbox::{*, inner::{*, bar::DeepTupleStruct}};
 use std::net::SocketAddr;
 use axum::{Json, Router, routing::get};
@@ -6,17 +8,17 @@ use rust_decimal::prelude::*;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let app = Router::new()
-        .route("/foo", get(get_foo).post(post_type::<Foo>))
-        .route("/bar", get(get_bar).post(post_type::<Bar>))
-        .route("/deep_tuple_struct", get(get_deep_tuple_struct).post(post_type::<DeepTupleStruct>))
-        .route("/named_struct", get(get_named_struct).post(post_type::<NamedStruct>))
-        .route("/tuple_struct", get(get_tuple_struct).post(post_type::<TupleStruct>))
-        .route("/unit_struct", get(get_unit_struct).post(post_type::<UnitStruct>))
-        .route("/enum_struct", get(get_enum_struct).post(post_type::<Enum>))
-        .route("/enum_tuple", get(get_enum_tuple).post(post_type::<Enum>))
-        .route("/enum_tiny_tuple", get(get_enum_tiny_tuple).post(post_type::<Enum>))
-        .route("/enum_unit", get(get_enum_unit).post(post_type::<Enum>))
-        .route("/enum_big_struct", get(get_enum_big_struct).post(post_type::<Enum>))
+        .route("/foo", get(get_foo).post(post_echo::<Foo>))
+        .route("/bar", get(get_bar).post(post_echo::<Bar>))
+        .route("/deep_tuple_struct", get(get_deep_tuple_struct).post(post_echo::<DeepTupleStruct>))
+        .route("/named_struct", get(get_named_struct).post(post_echo::<NamedStruct>))
+        .route("/tuple_struct", get(get_tuple_struct).post(post_echo::<TupleStruct>))
+        .route("/unit_struct", get(get_unit_struct).post(post_echo::<UnitStruct>))
+        .route("/enum_struct", get(get_enum_struct).post(post_echo::<Enum>))
+        .route("/enum_tuple", get(get_enum_tuple).post(post_echo::<Enum>))
+        .route("/enum_tiny_tuple", get(get_enum_tiny_tuple).post(post_echo::<Enum>))
+        .route("/enum_unit", get(get_enum_unit).post(post_echo::<Enum>))
+        .route("/enum_big_struct", get(get_enum_big_struct).post(post_echo::<Enum>))
     ;
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -32,6 +34,11 @@ async fn main() -> anyhow::Result<()> {
 
 async fn post_type<T: std::fmt::Debug>(Json(input): Json<T>) {
     println!("got {input:#?}");
+}
+
+async fn post_echo<T: std::fmt::Debug>(input: Json<T>) -> Json<T> {
+    println!("got {:#?}", input.0);
+    input
 }
 
 async fn get_foo() -> Json<Foo> {
@@ -66,10 +73,6 @@ async fn get_named_struct() -> Json<NamedStruct> {
             one: 1,
             two: "2".to_string(),
         }),
-        more: Foo {
-            one: 3,
-            two: "4".to_string(),
-        },
     };
 
     Json(data)
@@ -119,19 +122,15 @@ async fn get_enum_unit() -> Json<Enum> {
 
 async fn get_enum_big_struct() -> Json<Enum> {
     let data = Enum::BigStruct {
-        // more: Foo {
-        //     one: 6,
-        //     two: "12".to_string(),
-        // },
+        one: Foo {
+            one: 6,
+            two: "12".to_string(),
+        },
         three: DeepTupleStruct(4),
         four: Some(NamedStruct {
             foo: PhantomType(6),
             ty: Decimal::new(132, 2),
             opt: None,
-            more: Foo {
-                one: 777,
-                two: "444".to_string(),
-            },
         }),
         five: TupleStruct(8, Foo {
             one: 16,
