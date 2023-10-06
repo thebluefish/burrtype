@@ -67,8 +67,45 @@ impl Burrxporter {
         Ok(self)
     }
 
-    /// Resolves all modules for export
-    /// Collects dependent types and resolves their target modules
+    /// Collects and resolves all types for export
+    /// Items without a #[burr(mod = "target")] attribute will be written to `default`
+    pub fn resolve_all(&mut self, default: &str) -> &mut Self {
+        let mut touched_mods = Vec::new();
+
+        let mut items: Vec<(IrItem, &str)> = self.type_registry.values().map(|ir| {
+            (ir.clone(), if let Some(path) = ir.mod_override() { path } else { default })
+        }).collect();
+
+        items.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+        for (ir, path) in items {
+            let path = PathBuf::from(path);
+
+            if let Some((bm, auto)) = get_or_create_mod(&mut self.mods, &path) {
+                bm.auto_exports.push(ir.type_id());
+                bm.types.insert(ir.type_id(), ir.clone());
+                if auto {
+                    touched_mods.push(path);
+                }
+            }
+        }
+
+        for path in touched_mods {
+            let (tm, auto) = get_or_create_mod(&mut self.mods, &path).unwrap();
+            assert!(!auto);
+
+            tm.auto_exports.sort_by(|a, b| {
+                let a = tm.types.get(a).unwrap().name();
+                let b = tm.types.get(b).unwrap().name();
+                a.cmp(&b)
+            });
+        }
+
+        self
+    }
+
+    /// Resolves dependencies for export
+    /// Dependencies without a #[burr(mod = "target")] attribute will be written to `default`
     pub fn resolve_exports(&mut self, default: &str) -> &mut Self {
         // Ensure dependencies of dependencies are also included by repeatedly checking until no more have been included
         let mut dirty = true;

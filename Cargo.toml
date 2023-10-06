@@ -11,6 +11,7 @@ members = [
     ".",
     "burrtype_derive",
     "burrtype_internal",
+    "examples/auto_types",
     "examples/sandbox",
     "examples/sandbox/test-server"
 ]
