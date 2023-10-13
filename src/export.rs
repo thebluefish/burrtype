@@ -128,27 +128,31 @@ impl Burrxporter {
                     diff.push((ir.clone(), ir.mod_override().unwrap_or(default)));
                 }
             }
-            diff.sort_by(|(_, a), (_, b)| a.cmp(b));
 
-            for (ir, path) in diff {
-                if let Some((bm, auto)) = get_or_create_mod(&mut self.mods, Path::new(path)) {
-                    bm.auto_exports.push(ir.type_id());
-                    bm.types.insert(ir.type_id(), ir);
-                    if auto {
-                        touched_mods.push(Path::new(path));
-                    }
+            if !diff.is_empty() {
+                dirty = true;
+
+                diff.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+                for (ir, path) in diff {
+                    let (bm, auto) = get_or_create_mod(&mut self.mods, Path::new(path)).unwrap();
+                        bm.auto_exports.push(ir.type_id());
+                        bm.types.insert(ir.type_id(), ir);
+                        if auto {
+                            touched_mods.push(Path::new(path));
+                        }
                 }
-            }
 
-            for path in touched_mods {
-                let (tm, auto) = get_or_create_mod(&mut self.mods, path).unwrap();
-                assert!(!auto);
+                for path in touched_mods {
+                    let (tm, auto) = get_or_create_mod(&mut self.mods, path).unwrap();
+                    assert!(!auto);
 
-                tm.auto_exports.sort_by(|a, b| {
-                    let a = tm.types.get(a).unwrap().name();
-                    let b = tm.types.get(b).unwrap().name();
-                    a.cmp(&b)
-                });
+                    tm.auto_exports.sort_by(|a, b| {
+                        let a = tm.types.get(a).unwrap().name();
+                        let b = tm.types.get(b).unwrap().name();
+                        a.cmp(&b)
+                    });
+                }
             }
         }
         self
