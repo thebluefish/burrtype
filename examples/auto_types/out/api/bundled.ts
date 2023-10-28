@@ -33,6 +33,11 @@ export type TupleStruct = [number, Foo]
 
 export type UnitStruct = null
 
+export interface Vecs {
+  one: number[],
+  two?: number[],
+}
+
 export type DeepTupleStruct = number
 
 export type Things =

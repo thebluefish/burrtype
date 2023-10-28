@@ -23,3 +23,8 @@ export interface NamedStruct {
 export type TupleStruct = [number, Foo]
 
 export type UnitStruct = null
+
+export interface Vecs {
+  one: number[],
+  two?: number[],
+}

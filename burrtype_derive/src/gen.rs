@@ -50,7 +50,8 @@ pub fn named_struct_ir(
                     } else if ir.flatten {
                         quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
                     } else {
-                        let (ty, optional) = parse::option(ty);
+                        let (ty, optional) = parse::option(ty.clone());
+                        let (ty, vec) = parse::vec(ty);
                         let field_docs = attrs::docs(&field.attrs);
                         let name = Ident::new_raw(&case.transform(&name.to_string()), name.span());
                         let ident = attrs::serde_rename(&field.attrs, &name);
@@ -62,6 +63,7 @@ pub fn named_struct_ir(
                                     id: std::any::TypeId::of::<#ty>(),
                                     path: burrtype::syn::parse_quote!(#ty),
                                     optional: #optional,
+                                    array: #vec,
                                 },
                                 #field_docs
                             });
@@ -128,7 +130,8 @@ pub fn tuple_struct_ir(
                         quote!()
                     } else {
                         let field_docs = attrs::docs(&field.attrs);
-                        let (ty, optional) = parse::option(ty);
+                        let (ty, optional) = parse::option(ty.clone());
+                        let (ty, vec) = parse::vec(ty);
 
                         if optional {
                             panic!("Option types unsupported for tuple structs");
@@ -140,6 +143,7 @@ pub fn tuple_struct_ir(
                                     id: std::any::TypeId::of::<#ty>(),
                                     path: burrtype::syn::parse_quote!(#ty),
                                     optional: #optional,
+                                    array: #vec,
                                 },
                                 #field_docs
                             },
@@ -262,7 +266,8 @@ fn enum_struct_variant_ir(
                     } else if ir.flatten {
                         quote! {fields.extend(<#ty as burrtype::ir::NamedStructExt>::fields());}
                     } else {
-                        let (ty, optional) = parse::option(ty);
+                        let (ty, optional) = parse::option(ty.clone());
+                        let (ty, vec) = parse::vec(ty);
                         let field_docs = attrs::docs(&field.attrs);
                         let name = Ident::new_raw(&case.transform(&name.to_string()), name.span());
                         let ident = attrs::serde_rename(&field.attrs, &name);
@@ -274,6 +279,7 @@ fn enum_struct_variant_ir(
                                     id: std::any::TypeId::of::<#ty>(),
                                     path: burrtype::syn::parse_quote!(#ty),
                                     optional: #optional,
+                                    array: #vec,
                                 },
                                 #field_docs
                             });
@@ -314,7 +320,8 @@ fn enum_tuple_variant_ir(
                         quote!()
                     } else {
                         let field_docs = attrs::docs(&field.attrs);
-                        let (ty, optional) = parse::option(ty);
+                        let (ty, optional) = parse::option(ty.clone());
+                        let (ty, vec) = parse::vec(ty);
 
                         if optional {
                             panic!("Option types unsupported for tuple variants");
@@ -326,6 +333,7 @@ fn enum_tuple_variant_ir(
                                     id: std::any::TypeId::of::<#ty>(),
                                     path: burrtype::syn::parse_quote!(#ty),
                                     optional: #optional,
+                                    array: #vec,
                                 },
                                 #field_docs
                             },

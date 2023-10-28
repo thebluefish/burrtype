@@ -55,3 +55,10 @@ pub enum Enum {
         five: TupleStruct,
     },
 }
+
+#[derive(burrtype::Burr, serde::Serialize, serde::Deserialize, Debug)]
+#[burr(mod = "inner")]
+pub struct Vecs {
+    pub one: Vec<u32>,
+    pub two: Option<Vec<u32>>,
+}

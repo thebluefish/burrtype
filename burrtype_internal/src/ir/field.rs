@@ -7,6 +7,7 @@ pub struct IrType {
     pub path: TypePath,
     pub id: TypeId,
     pub optional: bool,
+    pub array: bool,
 }
 
 /// A `name: type,` field
