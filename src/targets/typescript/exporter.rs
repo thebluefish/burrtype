@@ -175,11 +175,12 @@ impl<'t> TsExporter<'t> {
                         out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                     }
 
-                    out.push_str(&format!("{}{}{}: {},\n",
+                    out.push_str(&format!("{}{}{}: {}{},\n",
                                           self.formatter.get_indentation(),
                                           strip_rust_prefix(field.ident.to_string()),
                                           if field.ty.optional { "?" } else { "" },
                                           self.get_field_name(field.ty.id),
+                                          if field.ty.array { "[]" } else { "" },
                     ));
                 }
 
@@ -483,10 +484,11 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = field.docs {
                     out.push_str(&format!("/** {doc} */ "));
                 }
-                out.push_str(&format!("{}{}: {}",
+                out.push_str(&format!("{}{}: {}{}",
                                       strip_rust_prefix(field.name()),
                                       if field.ty.optional { "?" } else { "" },
-                                      self.get_field_name(field.ty.id)
+                                      self.get_field_name(field.ty.id),
+                                      if field.ty.array { "[]" } else { "" },
                 ));
             }
             else {
@@ -494,11 +496,12 @@ impl<'t> TsExporter<'t> {
                 if let Some(doc) = field.docs {
                     out.push_str(&format!("{}/** {doc} */\n", self.formatter.get_indentation()));
                 }
-                out.push_str(&format!("{}{}{}: {},\n",
+                out.push_str(&format!("{}{}{}: {}{},\n",
                                       self.formatter.get_indentation(),
                                       strip_rust_prefix(field.name()),
                                       if field.ty.optional { "?" } else { "" },
-                                      self.get_field_name(field.ty.id)
+                                      self.get_field_name(field.ty.id),
+                                      if field.ty.array { "[]" } else { "" },
                 ));
             }
         }

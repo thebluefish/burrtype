@@ -17,17 +17,15 @@ pub struct FlaggedField {
 }
 
 /// Tries to parse a `T` out of `Option<T>` types
-/// `Option<T>` => `(T, true)`
-/// `T` => `(T, false)`
-pub fn option(ty: &Type) -> (&Type, bool) {
-    if let Type::Path(path) = ty {
+pub fn option(ty: Type) -> (Type, bool) {
+    if let Type::Path(path) = &ty {
         // We don't care about the path to `Option`, only that the root type is `Option`
         if let Some(last) = path.path.segments.last() {
             if last.ident == "Option" {
                 // `Option<T>` has exactly one parameter, and it's a Type
                 if let PathArguments::AngleBracketed(args) = &last.arguments {
                     if let GenericArgument::Type(ty) = args.args.first().expect("Option should contain exactly one argument") {
-                        return (ty, true)
+                        return (ty.clone(), true)
                     }
                 }
             }
@@ -37,7 +35,24 @@ pub fn option(ty: &Type) -> (&Type, bool) {
     (ty, false)
 }
 
+/// Tries to parse a `T` out of `Vec<T>` types
+pub fn vec(ty: Type) -> (Type, bool) {
+    if let Type::Path(path) = &ty {
+        // We don't care about the path to `Option`, only that the root type is `Option`
+        if let Some(last) = path.path.segments.last() {
+            if last.ident == "Vec" {
+                // `Vec<T>` has exactly one parameter, and it's a Type
+                if let PathArguments::AngleBracketed(args) = &last.arguments {
+                    if let GenericArgument::Type(ty) = args.args.first().expect("Vec should contain exactly one argument") {
+                        return (ty.clone(), true)
+                    }
+                }
+            }
+        }
+    }
 
+    (ty, false)
+}
 
 /// Named fields can have the following attributes:
 /// #[burr(flatten)]
